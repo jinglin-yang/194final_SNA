@@ -1,0 +1,247 @@
+---
+title: "Working File"
+author: "Brandon Wong II"
+date: "2026-02-28"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Loading Dataset
+
+
+```{r}
+library(igraph)
+library(igraphdata)
+library(Matrix)
+library(dplyr)
+
+# Margin helpers
+def_marg <- c(5.1, 4.1, 4.1, 2.1)
+no_marg  <- c(0, 0, 0, 0)
+
+pa_road_edges <- read.table(
+  "roadNet-PA.txt",
+  comment.char = "#",
+  col.names = c("from", "to")
+)
+
+pa_road_network <- graph_from_data_frame(pa_road_edges, directed=FALSE)
+
+# Removes duplicate edges / self-loops
+simple_pa_road <- simplify(pa_road_network)
+summary(simple_pa_road)
+```
+
+```{r}
+# Check for self-loops
+sum(which_loop(simple_pa_road))
+
+# Check for multiple edges between the same two nodes
+sum(which_multiple(simple_pa_road))
+```
+
+```{r}
+# Basic Summary Statistics
+
+mean(degree(simple_pa_road)) # Average # of connections
+
+summary(degree(simple_pa_road)) # Degree Distribution
+
+vcount(simple_pa_road) # Number of Vertices (nodes)
+ecount(simple_pa_road) # Number of Edges (connections)
+```
+
+
+```{r}
+# Looking at Graph Attributes
+
+graph_attr_names(simple_pa_road) # Whole network attributes
+vertex_attr_names(simple_pa_road) # Vertex Attributes
+edge_attr_names(simple_pa_road) # Edge Attributes
+```
+
+```{r}
+length(V(simple_pa_road)$name) # each vertex (or node) is named, and each has a unique name
+
+
+# data.frame(
+#   Group = V(simple_pa_road)$name,
+#   Count = as.vector(table(V(simple_pa_road)$name)),
+#   Percentage = round(as.vector(table(V(simple_pa_road)$name)) / vcount(simple_pa_road) * 100, 1)
+# )
+```
+
+```{r}
+deg <- degree(simple_pa_road, mode="all")
+
+V(simple_pa_road)$deg <- deg
+```
+
+
+
+```{r, fig.height=8, fig.width=8}
+# set.seed(894035)
+sub_network1 <- induced.subgraph(simple_pa_road, sample(V(simple_pa_road), 2000))
+sub_deg <- degree(sub_network1)
+plot(sub_network1, 
+     # layout = layout_with_kk,
+     # === vertex properties 
+     vertex.color = "hotpink",
+     vertex.frame.color = "black",
+     vertex.shape = "square",
+     vertex.size = 5,
+     # === vertex label properties
+     vertex.label = NA,
+     # vertex.label.cex = 0.3,
+     # vertex.label.font = 2,
+     # vertex.label.color = "red",
+     # vertex.label.family = "Times",
+     # vertex.label.distance = 3,
+     # === edge properties
+     edge.color = "red",
+     edge.lty = 1,
+     edge.width = 0.5,
+     # edge.label = ...,
+     # edge.label.family = ...,
+     # edge.label.font = ...,
+     # edge.label.cex = ...,
+     # edge.curvature = ...,
+     edge.arrow.size = 0.2,
+     
+)
+summary(sub_network1)
+```
+
+```{r}
+# 1. Start with a node in a well-connected area to ensure we get a "chunk"
+# Using a specific node ID that is likely to have neighbors
+start_node <- V(simple_pa_road)[100] 
+
+# 2. Get the neighborhood (nodes within 3 steps of the start_node)
+# This creates a subgraph that actually looks like a road network
+nodes_neighborhood <- ego(simple_pa_road, order = 10, nodes = start_node)[[1]]
+
+# 3. Create the induced subgraph based on this neighborhood
+connected_subgraph <- induced.subgraph(simple_pa_road, nodes_neighborhood)
+
+plot(connected_subgraph, 
+     layout = layout_with_fr,
+     # === vertex properties 
+     vertex.color = "hotpink",
+     vertex.frame.color = "black",
+     vertex.shape = "square",
+     vertex.size = 5,
+     # === vertex label properties
+     vertex.label = NA,
+     # vertex.label.cex = 0.3,
+     # vertex.label.font = 2,
+     # vertex.label.color = "red",
+     # vertex.label.family = "Times",
+     # vertex.label.distance = 3,
+     # === edge properties
+     edge.color = "red",
+     edge.lty = 1,
+     edge.width = 0.5,
+     # edge.label = ...,
+     # edge.label.family = ...,
+     # edge.label.font = ...,
+     # edge.label.cex = ...,
+     # edge.curvature = ...,
+     edge.arrow.size = 0.2,
+)
+```
+```{r}
+?ego
+```
+
+```{r}
+# # Closeness Centrality
+# cl <- closeness(simple_pa_road, mode="all", weights=NA) 
+# 
+# centr_clo(simple_pa_road, mode="all", normalized=T)
+# 
+# # arrange by closeness
+# sort(cl, decreasing = T, index.return = T)
+# 
+# # uniform coloring
+# V(simple_pa_road)$color <- "white"
+# 
+# #coloring 5 most central nodes
+# # V(simple_pa_road)$color[V(simple_pa_road)[c(29, 37, 62, 52, 69)]] <- "#88398A"
+# 
+# # plot(simple_pa_road, 
+# #      vertex.size=10,
+# #      vertex.label.cex = 0.4,
+# #      edge.arrow.size = 0.1)
+# 
+# # Betweeness Centrality
+# btw <- betweenness(simple_pa_road, directed=T, weights=NA)
+# 
+# edge_betweenness(simple_pa_road, directed=T, weights=NA)
+# 
+# centr_betw(simple_pa_road, directed=T, normalized=T)
+# 
+# # sorting by betweenness 
+# sort(btw, decreasing = T, index.return = T)
+# 
+# # V(simple_pa_road)$color[V(simple_pa_road)[c(62, 29, 37, 38, 52)]] <- "#88398A"
+# 
+# # plot(simple_pa_road, 
+# #      vertex.size=10,
+# #      vertex.label.cex = 0.4,
+# #      edge.arrow.size = 0.1)
+```
+
+
+```{r}
+# colors()
+red_colors <- colors()[grep("red", colors())]
+orange_colors <- colors()[grep("orange", colors())]
+yellow_colors <- colors()[grep("yellow", colors())]
+green_colors <- colors()[grep("green", colors())]
+blue_colors <- colors()[grep("blue", colors())]
+purple_colors <- colors()[grep("purple", colors())]
+brown_colors <- colors()[grep(c("brown"), colors())]
+pink_colors <- colors()[grep("pink", colors())]
+white_colors <- colors()[grep("white", colors())]
+black_colors <- colors()[grep("black", colors())]
+light_colors <- colors()[grep("light", colors())]
+
+
+
+color_plot <- function(my_colors) {
+  # 2. Set up a blank plot area
+  plot(NULL, xlim=c(0, 4), ylim=c(0, 5), xlab="", ylab="", xaxt="n", yaxt="n")
+
+  # 3. Loop through and draw rectangles
+  for(i in 1:length(red_colors)) {
+    # Calculate position
+    x_pos <- (i-1) %% 4
+    y_pos <- 4 - floor((i-1) / 4)
+  
+    # Draw rectangle
+    rect(x_pos, y_pos, x_pos+0.9, y_pos+0.8, col=my_colors[i], border="black")
+  
+    # Add label
+    text(x_pos+0.45, y_pos+0.4, labels=my_colors[i], cex=0.7, col="black")
+  }
+}
+
+color_plot(red_colors)
+color_plot(orange_colors)
+color_plot(yellow_colors)
+color_plot(green_colors)
+color_plot(blue_colors)
+color_plot(purple_colors)
+color_plot(brown_colors)
+color_plot(pink_colors)
+color_plot(white_colors)
+color_plot(black_colors)
+color_plot(light_colors)
+```
+
+
+
