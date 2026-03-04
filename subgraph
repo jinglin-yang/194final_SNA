@@ -1,0 +1,67 @@
+set.seed(234)
+get_connected_subgraph <- function(network, target_size = 200) {
+  start  <- sample(V(network), 1)
+  nearby <- ego(network, order = 8, nodes = start)[[1]]  # order=3 for more nodes
+  if(length(nearby) >= target_size) {
+    sample(nearby, target_size)  # randomly sample 200 from neighborhood
+  } else {
+    nearby  # take all if less than 200
+  }
+}
+
+sub.network1 <- induced_subgraph(roadNet_PA, get_connected_subgraph(roadNet_PA))
+sub.network2 <- induced_subgraph(roadNet_PA, get_connected_subgraph(roadNet_PA))
+sub.network3 <- induced_subgraph(roadNet_PA, get_connected_subgraph(roadNet_PA))
+sub.network4 <- induced_subgraph(roadNet_PA, get_connected_subgraph(roadNet_PA))
+
+
+deg3 <- degree(sub.network3, mode = "all")
+deg2 <- degree(sub.network2)
+deg4 <- degree(sub.network4)
+deg1 <- degree(sub.network1)
+
+
+plot(sub.network3,
+     layout          = layout_with_fr(sub.network3),
+     vertex.size     = sqrt(deg3) + 1,
+     vertex.color    = "#88398A",
+     vertex.label    = NA,
+     edge.arrow.size = 0.1,
+     main            = "Subgraph 3 – FR Layout")
+
+
+
+
+plot(sub.network1,
+     layout          = layout_with_fr(sub.network1),
+     vertex.size     = sqrt(deg1) + 1,
+     vertex.color    = "#88398A",
+     vertex.label    = NA,
+     edge.arrow.size = 0.1,
+     main            = "Subgraph 1 – FR Layout")
+
+
+plot(sub.network2,
+     layout          = layout_with_fr(sub.network2),
+     vertex.size     = sqrt(deg2) + 1,
+     vertex.color    = "#88398A",
+     vertex.label    = NA,
+     edge.arrow.size = 0.1,
+     main            = "Subgraph 2 – FR Layout")
+
+
+plot(sub.network4,
+     layout          = layout_with_fr(sub.network4),
+     vertex.size     = sqrt(deg4) + 1,
+     vertex.color    = "#88398A",
+     vertex.label    = NA,
+     edge.arrow.size = 0.1,
+     main            = "Subgraph 4 – FR Layout")
+
+gorder(sub.network3)   # number of vertices
+
+
+gorder(sub.network1)
+gorder(sub.network2)
+gorder(sub.network4)
+
