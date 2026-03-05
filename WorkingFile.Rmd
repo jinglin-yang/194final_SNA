@@ -9,7 +9,7 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-### Loading Dataset
+## Loading Dataset
 
 
 ```{r}
@@ -36,6 +36,315 @@ summary(simple_pa_road)
 ```
 
 ```{r}
+deg <- degree(simple_pa_road, mode="all")
+
+degree_quantiles <- quantile(deg)
+print(degree_quantiles)
+
+# Calculate specific percentiles (e.g., top 1% or 0.1% hubs)
+hub_percentiles <- quantile(deg, probs = c(0.9, 0.95, 0.99, 0.999))
+print(hub_percentiles)
+```
+
+
+```{r}
+articulation_points(simple_pa_road)
+```
+
+## Creating Subgraphs
+
+```{r}
+# Creating New Vertex Attribute
+deg <- degree(simple_pa_road, mode="all")
+
+V(simple_pa_road)$deg <- deg
+
+sorted_deg <- sort(deg, decreasing = T, index.return = T)
+highest_deg <- sorted_deg$x[0:10]
+node_index <- sorted_deg$ix[0:10]
+
+cbind(highest_deg, node_index)
+```
+
+```{r}
+set.seed(043859)
+neighborhood_subgraphs <- make_neighborhood_graph(simple_pa_road, order = 12, nodes = node_index[1:4], mode = "all")
+
+sub1 <- neighborhood_subgraphs[[1]]
+sub2 <- neighborhood_subgraphs[[2]]
+sub3 <- neighborhood_subgraphs[[3]]
+sub4 <- neighborhood_subgraphs[[4]]
+
+plot(sub1,
+     layout = layout_nicely,
+     # === vertex properties 
+     vertex.color = "yellow",
+     vertex.frame.color = "black",
+     vertex.shape = "square",
+     vertex.size = 3,
+     # === vertex label properties
+     vertex.label = NA,
+     # === edge properties
+     edge.color = "black",
+     edge.lty = 1,
+     edge.width = 0.5,
+     edge.arrow.size = 0.2,
+)
+
+plot(sub2,
+     layout = layout_nicely,
+     # === vertex properties 
+     vertex.color = "yellow",
+     vertex.frame.color = "black",
+     vertex.shape = "square",
+     vertex.size = 3,
+     # === vertex label properties
+     vertex.label = NA,
+     # === edge properties
+     edge.color = "black",
+     edge.lty = 1,
+     edge.width = 0.5,
+     edge.arrow.size = 0.2,
+)
+
+plot(sub3,
+     layout = layout_nicely,
+     # === vertex properties 
+     vertex.color = "yellow",
+     vertex.frame.color = "black",
+     vertex.shape = "square",
+     vertex.size = 3,
+     # === vertex label properties
+     vertex.label = NA,
+     # === edge properties
+     edge.color = "black",
+     edge.lty = 1,
+     edge.width = 0.5,
+     edge.arrow.size = 0.2,
+)
+
+plot(sub4,
+     layout = layout_nicely,
+     # === vertex properties 
+     vertex.color = "yellow",
+     vertex.frame.color = "black",
+     vertex.shape = "square",
+     vertex.size = 3,
+     # === vertex label properties
+     vertex.label = NA,
+     # === edge properties
+     edge.color = "black",
+     edge.lty = 1,
+     edge.width = 0.5,
+     edge.arrow.size = 0.2,
+)
+
+random_nodes <- sample(V(mynetwork), 4)
+```
+
+
+```{r}
+# Subgraph 1
+# 1. Select the first starting node (highest degree)
+sub1_deg <- degree(simple_pa_road, mode="all")
+sub1_sorted_deg <- sort(sub1_deg, decreasing = T, index.return = T)
+
+start_node_1 <- V(simple_pa_road)[sub1_sorted_deg$ix[1]]
+
+# 2. Extract the neighborhood
+# we use ego() to get the IDs directly
+sub1_nodes <- ego(simple_pa_road, order = 12, nodes = start_node_1, mode = "all")[[1]]
+
+# 3. Create the actual subgraph object for plotting/analysis
+sub1 <- induced_subgraph(simple_pa_road, sub1_nodes)
+
+plot(sub1,
+     layout = layout_nicely,
+     # === vertex properties 
+     vertex.color = "yellow",
+     vertex.frame.color = "black",
+     vertex.shape = "square",
+     vertex.size = 3,
+     # === vertex label properties
+     vertex.label = NA,
+     # === edge properties
+     edge.color = "black",
+     edge.lty = 1,
+     edge.width = 0.5,
+     edge.arrow.size = 0.2,
+)
+
+# Remove these nodes from the main graph to create a "remaining" network
+# We use the names/indices to delete them
+remaining_network <- delete_vertices(simple_pa_road, sub1_nodes)
+
+
+# Subgraph 2 
+# Recalculate degrees on the REMAINING network to find the new "best" start node
+sub2_deg <- degree(remaining_network)
+sub2_sorted_deg <- sort(sub2_deg, decreasing = TRUE, index.return = TRUE)
+
+# Select the new highest degree node from what's left
+start_node_2 <- V(remaining_network)[sub2_sorted_deg$ix[1]]
+
+# Extract the neighborhood from the remaining network
+sub2_nodes <- ego(remaining_network, order = 12, nodes = start_node_2, mode = "all")[[1]]
+sub2 <- induced_subgraph(remaining_network, sub2_nodes)
+
+plot(sub2,
+     layout = layout_nicely,
+     # === vertex properties 
+     vertex.color = "yellow",
+     vertex.frame.color = "black",
+     vertex.shape = "square",
+     vertex.size = 3,
+     # === vertex label properties
+     vertex.label = NA,
+     # === edge properties
+     edge.color = "black",
+     edge.lty = 1,
+     edge.width = 0.5,
+     edge.arrow.size = 0.2,
+)
+
+remaining_network1 <- delete_vertices(remaining_network, sub2_nodes)
+
+# Subgraph 3
+sub3_deg <- degree(remaining_network1)
+sub3_sorted_deg <- sort(sub3_deg, decreasing = TRUE, index.return = TRUE)
+
+start_node_3 <- V(remaining_network1)[sub3_sorted_deg$ix[1]]
+
+sub3_nodes <- ego(remaining_network1, order = 12, nodes = start_node_3, mode = "all")[[1]]
+sub3 <- induced_subgraph(remaining_network1, sub3_nodes)
+
+plot(sub3,
+     layout = layout_nicely,
+     # === vertex properties 
+     vertex.color = "yellow",
+     vertex.frame.color = "black",
+     vertex.shape = "square",
+     vertex.size = 3,
+     # === vertex label properties
+     vertex.label = NA,
+     # === edge properties
+     edge.color = "black",
+     edge.lty = 1,
+     edge.width = 0.5,
+     edge.arrow.size = 0.2,
+)
+
+remaining_network2 <- delete_vertices(remaining_network1, sub3_nodes)
+
+# Subgraph 4 
+sub4_deg <- degree(remaining_network2)
+sub4_sorted_deg <- sort(sub4_deg, decreasing = TRUE, index.return = TRUE)
+
+# Select the new highest degree node from what's left
+start_node_4 <- V(remaining_network2)[sub4_sorted_deg$ix[1]]
+
+sub4_nodes <- ego(remaining_network2, order = 12, nodes = start_node_4, mode = "all")[[1]]
+sub4 <- induced_subgraph(remaining_network2, sub4_nodes)
+
+plot(sub4,
+     layout = layout_nicely,
+     # === vertex properties 
+     vertex.color = "yellow",
+     vertex.frame.color = "black",
+     vertex.shape = "square",
+     vertex.size = 3,
+     # === vertex label properties
+     vertex.label = NA,
+     # === edge properties
+     edge.color = "black",
+     edge.lty = 1,
+     edge.width = 0.5,
+     edge.arrow.size = 0.2,
+)
+
+remaining_network3 <- delete_vertices(remaining_network2, sub4_nodes)
+
+# Subgraph 5 
+sub5_deg <- degree(remaining_network3)
+sub5_sorted_deg <- sort(sub5_deg, decreasing = TRUE, index.return = TRUE)
+
+start_node_5 <- V(remaining_network3)[sub5_sorted_deg$ix[1]]
+
+sub5_nodes <- ego(remaining_network3, order = 12, nodes = start_node_5, mode = "all")[[1]]
+sub5 <- induced_subgraph(remaining_network3, sub5_nodes)
+
+plot(sub5,
+     layout = layout_nicely,
+     # === vertex properties 
+     vertex.color = "yellow",
+     vertex.frame.color = "black",
+     vertex.shape = "square",
+     vertex.size = 3,
+     # === vertex label properties
+     vertex.label = NA,
+     # === edge properties
+     edge.color = "black",
+     edge.lty = 1,
+     edge.width = 0.5,
+     edge.arrow.size = 0.2,
+)
+
+network_stats <- data.frame(
+  Stage = c("Initial (Sub1)", "Iteration 2 (Sub2)", "Iteration 3 (Sub3)", "Iteration 4 (Sub4)", "Iteration 5 (Sub5)"),
+  Available_Nodes = c(vcount(simple_pa_road), vcount(remaining_network), vcount(remaining_network1), 
+                      vcount(remaining_network2), vcount(remaining_network3)),
+  Available_Edges = c(ecount(simple_pa_road), ecount(remaining_network), ecount(remaining_network1), 
+                      ecount(remaining_network2), ecount(remaining_network3)),
+  Subgraph_Nodes = c(vcount(sub1), vcount(sub2), vcount(sub3), vcount(sub4), vcount(sub5)),
+  Subgraph_Edges = c(ecount(sub1), ecount(sub2), ecount(sub3), ecount(sub4), ecount(sub5))
+)
+
+# Print the table to the console
+print(network_stats)
+```
+
+
+```{r, fig.height=8, fig.width=8}
+set.seed(894035)
+
+large_subgraph <- make_neighborhood_graph(simple_pa_road, order = 40, nodes = sample(V(simple_pa_road), 1))[[1]]
+
+large_sub1 <- induced.subgraph(large_subgraph, sample(V(large_subgraph), 200))
+
+plot(large_sub1,
+     # layout = layout_with_kk,
+     # === vertex properties
+     vertex.color = "hotpink",
+     vertex.frame.color = "black",
+     vertex.shape = "square",
+     vertex.size = 3,
+     # === vertex label properties
+     vertex.label = NA,
+     # vertex.label.cex = 0.3,
+     # vertex.label.font = 2,
+     # vertex.label.color = "red",
+     # vertex.label.family = "Times",
+     # vertex.label.distance = 3,
+     # === edge properties
+     edge.color = "red",
+     edge.lty = 1,
+     edge.width = 0.5,
+     # edge.label = ...,
+     # edge.label.family = ...,
+     # edge.label.font = ...,
+     # edge.label.cex = ...,
+     # edge.curvature = ...,
+     edge.arrow.size = 0.2
+)
+ecount(large_subgraph)
+vcount(large_subgraph)
+ecount(large_sub1)
+vcount(large_sub1)
+```
+
+## Basic Summary Statistics / Metrics
+
+```{r}
 # Check for self-loops
 sum(which_loop(simple_pa_road))
 
@@ -53,7 +362,37 @@ summary(degree(simple_pa_road)) # Degree Distribution
 vcount(simple_pa_road) # Number of Vertices (nodes)
 ecount(simple_pa_road) # Number of Edges (connections)
 ```
+```{r}
+# ================  ~~ Descriptive Network Statistics (Metrics) ================
 
+# Density 
+graph.density(simple_pa_road)
+
+# Reciprocity 
+reciprocity(simple_pa_road)
+
+# Transitivity 
+transitivity(simple_pa_road)
+
+# Reachability 
+# average.path.length(simple_pa_road)
+
+diameter(simple_pa_road, weights = NA)
+
+#diameter(UKfaculty)
+
+farthest_vertices(simple_pa_road)
+
+#farthest_vertices(UKfaculty, , weights = NA)
+
+# Connected components
+is.connected(simple_pa_road, mode = "strong")
+components(simple_pa_road, mode="strong")$no
+
+
+# Articulation points
+articulation.points(simple_pa_road)
+```
 
 ```{r}
 # Looking at Graph Attributes
@@ -63,102 +402,11 @@ vertex_attr_names(simple_pa_road) # Vertex Attributes
 edge_attr_names(simple_pa_road) # Edge Attributes
 ```
 
-```{r}
-length(V(simple_pa_road)$name) # each vertex (or node) is named, and each has a unique name
 
-
-# data.frame(
-#   Group = V(simple_pa_road)$name,
-#   Count = as.vector(table(V(simple_pa_road)$name)),
-#   Percentage = round(as.vector(table(V(simple_pa_road)$name)) / vcount(simple_pa_road) * 100, 1)
-# )
-```
-
-```{r}
-deg <- degree(simple_pa_road, mode="all")
-
-V(simple_pa_road)$deg <- deg
-```
-
-
-
-```{r, fig.height=8, fig.width=8}
-# set.seed(894035)
-sub_network1 <- induced.subgraph(simple_pa_road, sample(V(simple_pa_road), 2000))
-sub_deg <- degree(sub_network1)
-plot(sub_network1, 
-     # layout = layout_with_kk,
-     # === vertex properties 
-     vertex.color = "hotpink",
-     vertex.frame.color = "black",
-     vertex.shape = "square",
-     vertex.size = 5,
-     # === vertex label properties
-     vertex.label = NA,
-     # vertex.label.cex = 0.3,
-     # vertex.label.font = 2,
-     # vertex.label.color = "red",
-     # vertex.label.family = "Times",
-     # vertex.label.distance = 3,
-     # === edge properties
-     edge.color = "red",
-     edge.lty = 1,
-     edge.width = 0.5,
-     # edge.label = ...,
-     # edge.label.family = ...,
-     # edge.label.font = ...,
-     # edge.label.cex = ...,
-     # edge.curvature = ...,
-     edge.arrow.size = 0.2,
-     
-)
-summary(sub_network1)
-```
-
-```{r}
-# 1. Start with a node in a well-connected area to ensure we get a "chunk"
-# Using a specific node ID that is likely to have neighbors
-start_node <- V(simple_pa_road)[100] 
-
-# 2. Get the neighborhood (nodes within 3 steps of the start_node)
-# This creates a subgraph that actually looks like a road network
-nodes_neighborhood <- ego(simple_pa_road, order = 10, nodes = start_node)[[1]]
-
-# 3. Create the induced subgraph based on this neighborhood
-connected_subgraph <- induced.subgraph(simple_pa_road, nodes_neighborhood)
-
-plot(connected_subgraph, 
-     layout = layout_with_fr,
-     # === vertex properties 
-     vertex.color = "hotpink",
-     vertex.frame.color = "black",
-     vertex.shape = "square",
-     vertex.size = 5,
-     # === vertex label properties
-     vertex.label = NA,
-     # vertex.label.cex = 0.3,
-     # vertex.label.font = 2,
-     # vertex.label.color = "red",
-     # vertex.label.family = "Times",
-     # vertex.label.distance = 3,
-     # === edge properties
-     edge.color = "red",
-     edge.lty = 1,
-     edge.width = 0.5,
-     # edge.label = ...,
-     # edge.label.family = ...,
-     # edge.label.font = ...,
-     # edge.label.cex = ...,
-     # edge.curvature = ...,
-     edge.arrow.size = 0.2,
-)
-```
-```{r}
-?ego
-```
 
 ```{r}
 # # Closeness Centrality
+
 # cl <- closeness(simple_pa_road, mode="all", weights=NA) 
 # 
 # centr_clo(simple_pa_road, mode="all", normalized=T)
@@ -177,7 +425,10 @@ plot(connected_subgraph,
 # #      vertex.label.cex = 0.4,
 # #      edge.arrow.size = 0.1)
 # 
+
+
 # # Betweeness Centrality
+
 # btw <- betweenness(simple_pa_road, directed=T, weights=NA)
 # 
 # edge_betweenness(simple_pa_road, directed=T, weights=NA)
@@ -196,6 +447,9 @@ plot(connected_subgraph,
 ```
 
 
+
+
+## Colors!
 ```{r}
 # colors()
 red_colors <- colors()[grep("red", colors())]
