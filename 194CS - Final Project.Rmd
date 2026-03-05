@@ -1,0 +1,414 @@
+---
+title: "194CS - Final Project"
+author: "Brandon Wong II"
+date: "2026-03-05"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Loading Dataset
+
+```{r}
+library(igraph)
+library(igraphdata)
+library(Matrix)
+library(dplyr)
+
+# Margin helpers
+def_marg <- c(5.1, 4.1, 4.1, 2.1)
+no_marg  <- c(0, 0, 0, 0)
+
+pa_road_edges <- read.table(
+  "roadNet-PA.txt",
+  comment.char = "#",
+  col.names = c("from", "to")
+)
+
+pa_road_network <- graph_from_data_frame(pa_road_edges, directed=FALSE)
+
+# Removes duplicate edges / self-loops
+simple_pa_road <- simplify(pa_road_network)
+summary(simple_pa_road)
+```
+
+```{r}
+V(simple_pa_road)$name
+```
+
+```{r}
+V(simple_pa_road)[3]
+```
+
+## Generating Subgraphs
+
+Here, we generate subgraphs iteratively using the following steps:
+
+- 1. Find the degrees of all remaining nodes, sort in descending order and pull the index of the highest degree node as the start_node (if on Iteration 1, this would just use the whole network, simple_pa_road)
+
+- 2. Using the start node, build out the neighborhood and extract the node ID's using ego(), these are your subgraphs neighborhood nodes
+
+- 3. Create the actual subgraph using induced_subgraph() with the remaining network (or full network) and neighborhood nodes
+
+- 4. Plot the generated subgraph plot(sub1, ...)
+
+- 5. Find the remaining nodes by deleting the neighborhood nodes you used from the remaining network nodes (or whole network nodes if Iteration 1)
+
+- 6. Repeat
+
+Considerations:
+
+**Why generate subgraphs?**
+
+- We generate subgraphs because our whole network is simply too large to run many of the summary statistics (diameter, betweenness/closeness centrality, average.path.length, etc) or community detection algorithms.
+
+**Why generate iteratively?**
+
+- 
+
+**Why use the highest degree nodes to build the neighborhoods?**
+
+- We use the highest degree nodes because in a road network, nodes (or intersections) with high degrees (high number of connecting roads) are likely major intersections where many roads converge to. Essentially what this does is find the city centers or hubs that we can use to see how surrounding neighborhoods are structured. 
+
+**Why order = 15?**
+
+- We chose an order level of 15 because choosing higher order levels will result in having similar problems to using the whole network, that is, it is computationally expensive. And for lower order levels, we get pretty small subgraphs which would give less meaningful information. 
+
+
+```{r, cache = TRUE}
+# Subgraph 1
+# 1. Select the first starting node (highest degree)
+sub1_deg <- degree(simple_pa_road, mode="all")
+sub1_sorted_deg <- sort(sub1_deg, decreasing = T, index.return = T)
+
+start_node_1 <- sub1_sorted_deg$ix[1]
+
+# 2. Extract the neighborhood
+# we use ego() to get the IDs directly
+sub1_nodes <- ego(simple_pa_road, order = 15, nodes = start_node_1, mode = "all")[[1]]
+
+# 3. Create the actual subgraph object for plotting/analysis
+sub1 <- induced_subgraph(simple_pa_road, sub1_nodes)
+
+plot(sub1,
+     layout = layout_nicely,
+     # === vertex properties 
+     vertex.color = "yellow",
+     vertex.frame.color = "black",
+     vertex.shape = "square",
+     vertex.size = 3,
+     # === vertex label properties
+     vertex.label = NA,
+     # === edge properties
+     edge.color = "black",
+     edge.lty = 1,
+     edge.width = 0.5,
+     edge.arrow.size = 0.2,
+)
+
+# Remove these nodes from the main graph to create a "remaining" network
+# We use the names/indices to delete them
+remaining_network <- delete_vertices(simple_pa_road, sub1_nodes)
+
+
+# Subgraph 2 
+# Recalculate degrees on the REMAINING network to find the new "best" start node
+sub2_deg <- degree(remaining_network)
+sub2_sorted_deg <- sort(sub2_deg, decreasing = TRUE, index.return = TRUE)
+
+# Select the new highest degree node from what's left
+start_node_2 <- sub2_sorted_deg$ix[1]
+
+# Extract the neighborhood from the remaining network
+sub2_nodes <- ego(remaining_network, order = 15, nodes = start_node_2, mode = "all")[[1]]
+sub2 <- induced_subgraph(remaining_network, sub2_nodes)
+
+plot(sub2,
+     layout = layout_nicely,
+     # === vertex properties 
+     vertex.color = "yellow",
+     vertex.frame.color = "black",
+     vertex.shape = "square",
+     vertex.size = 3,
+     # === vertex label properties
+     vertex.label = NA,
+     # === edge properties
+     edge.color = "black",
+     edge.lty = 1,
+     edge.width = 0.5,
+     edge.arrow.size = 0.2,
+)
+
+remaining_network1 <- delete_vertices(remaining_network, sub2_nodes)
+
+# Subgraph 3
+sub3_deg <- degree(remaining_network1)
+sub3_sorted_deg <- sort(sub3_deg, decreasing = TRUE, index.return = TRUE)
+
+start_node_3 <- sub3_sorted_deg$ix[1]
+
+sub3_nodes <- ego(remaining_network1, order = 15, nodes = start_node_3, mode = "all")[[1]]
+sub3 <- induced_subgraph(remaining_network1, sub3_nodes)
+
+plot(sub3,
+     layout = layout_nicely,
+     # === vertex properties 
+     vertex.color = "yellow",
+     vertex.frame.color = "black",
+     vertex.shape = "square",
+     vertex.size = 3,
+     # === vertex label properties
+     vertex.label = NA,
+     # === edge properties
+     edge.color = "black",
+     edge.lty = 1,
+     edge.width = 0.5,
+     edge.arrow.size = 0.2,
+)
+
+remaining_network2 <- delete_vertices(remaining_network1, sub3_nodes)
+
+# Subgraph 4 
+sub4_deg <- degree(remaining_network2)
+sub4_sorted_deg <- sort(sub4_deg, decreasing = TRUE, index.return = TRUE)
+
+# Select the new highest degree node from what's left
+start_node_4 <- sub4_sorted_deg$ix[1]
+
+sub4_nodes <- ego(remaining_network2, order = 15, nodes = start_node_4, mode = "all")[[1]]
+sub4 <- induced_subgraph(remaining_network2, sub4_nodes)
+
+plot(sub4,
+     layout = layout_nicely,
+     # === vertex properties 
+     vertex.color = "yellow",
+     vertex.frame.color = "black",
+     vertex.shape = "square",
+     vertex.size = 3,
+     # === vertex label properties
+     vertex.label = NA,
+     # === edge properties
+     edge.color = "black",
+     edge.lty = 1,
+     edge.width = 0.5,
+     edge.arrow.size = 0.2,
+)
+
+remaining_network3 <- delete_vertices(remaining_network2, sub4_nodes)
+
+# Subgraph 5 
+sub5_deg <- degree(remaining_network3)
+sub5_sorted_deg <- sort(sub5_deg, decreasing = TRUE, index.return = TRUE)
+
+start_node_5 <- sub5_sorted_deg$ix[1]
+
+sub5_nodes <- ego(remaining_network3, order = 15, nodes = start_node_5, mode = "all")[[1]]
+sub5 <- induced_subgraph(remaining_network3, sub5_nodes)
+
+plot(sub5,
+     layout = layout_nicely,
+     # === vertex properties 
+     vertex.color = "yellow",
+     vertex.frame.color = "black",
+     vertex.shape = "square",
+     vertex.size = 3,
+     # === vertex label properties
+     vertex.label = NA,
+     # === edge properties
+     edge.color = "black",
+     edge.lty = 1,
+     edge.width = 0.5,
+     edge.arrow.size = 0.2,
+)
+```
+```{r}
+# start_node_test1 <- V(remaining_network)[sub2_sorted_deg$ix[1]]
+# sub2_nodes_test1 <- ego(remaining_network, order = 15, nodes = start_node_test1, mode = "all")[[1]]
+# sub2_test1 <- induced_subgraph(remaining_network, sub2_nodes_test1)
+# 
+# plot(sub2_test1,
+#      layout = layout_nicely,
+#      # === vertex properties 
+#      vertex.color = "yellow",
+#      vertex.frame.color = "black",
+#      vertex.shape = "square",
+#      vertex.size = 3,
+#      # === vertex label properties
+#      vertex.label = NA,
+#      # === edge properties
+#      edge.color = "black",
+#      edge.lty = 1,
+#      edge.width = 0.5,
+#      edge.arrow.size = 0.2,
+# )
+# 
+# start_node_test <- sub2_sorted_deg$ix[1]
+# sub2_nodes_test <- ego(remaining_network, order = 15, nodes = start_node_test, mode = "all")[[1]]
+# sub2_test <- induced_subgraph(remaining_network, sub2_nodes_test)
+# 
+# plot(sub2_test,
+#      layout = layout_nicely,
+#      # === vertex properties 
+#      vertex.color = "yellow",
+#      vertex.frame.color = "black",
+#      vertex.shape = "square",
+#      vertex.size = 3,
+#      # === vertex label properties
+#      vertex.label = NA,
+#      # === edge properties
+#      edge.color = "black",
+#      edge.lty = 1,
+#      edge.width = 0.5,
+#      edge.arrow.size = 0.2,
+# )
+```
+
+
+```{r}
+sort(degree(remaining_network), decreasing = TRUE, index = TRUE)
+```
+
+```{r}
+degree(simple_pa_road, start_node_1)
+degree(remaining_network, start_node_2)
+degree(remaining_network1, start_node_3)
+degree(remaining_network2, start_node_4)
+degree(remaining_network3, start_node_5)
+
+node_index <- c(start_node_1, start_node_2, start_node_3, start_node_4, start_node_5)
+node_index
+```
+
+
+```{r, cache = TRUE}
+my_subs <- list(sub1, sub2, sub3, sub4, sub5)
+my_nodes <- c(start_node_1, start_node_2, start_node_3, start_node_4, start_node_5)
+sub_names <- c("Hub 1", "Hub 2", "Hub 3", "Hub 4", "Hub 5")
+
+results <- data.frame()
+
+for(i in 1:length(my_subs)){
+  g <- my_subs[[i]]
+  
+  # Community Detection
+  cw <- cluster_walktrap(g)
+  cfg <- cluster_fast_greedy(g)
+  clouv <- cluster_louvain(g)
+  # Build row
+  row <- data.frame(
+    Name = sub_names[i],
+    Nodes = vcount(g),
+    Edges = ecount(g),
+    Start_Node_Degree = ,
+    Avg_Degree = mean(degree(g)),
+    Transitivity = transitivity(g),
+    Modularity_Walk = modularity(cw),
+    Modularity_FG = modularity(cfg),
+    Modularity_Louv = modularity(clouv),
+    Num_Communities_Walk = length(unique(membership(cw))),
+    Num_Communities_FG = length(unique(membership(cfg))),
+    Num_Communities_Louv = length(unique(membership(clouv))),
+    Diameter = diameter(g) 
+  )
+  results <- rbind(results, row)
+}
+
+print(results)
+```
+
+```{r, cache = TRUE}
+set.seed(932085) 
+
+cw <- cluster_walktrap(sub1)
+cfg <- cluster_fast_greedy(sub1)
+clouv <- cluster_louvain(sub1)
+
+
+# Color palette
+all_colors <- colors()
+vibrant_colors <- all_colors[!grepl("gray|grey", all_colors)]
+unique_palette <- sample(vibrant_colors)
+
+
+# Plotting Walktrap
+V(sub1)$community <- cw$membership
+num_comms <- length(unique(V(sub1)$community))
+com_colors <- unique_palette[1:num_comms]
+V(sub1)$color <- com_colors[V(sub1)$community]
+
+par(mar = no_marg)
+plot(sub1,
+     vertex.size = 4,
+     vertex.label = NA,
+     vertex.color = V(sub1)$color,
+     vertex.frame.color = "gray40",
+     edge.color = "gray70",
+     edge.width = 0.5,
+     edge.curved = 0.3,
+     mark.groups = communities(cw),
+     mark.col = "tan",
+     mark.border = "black",
+     main = "Walktrap Communities (colored hulls)")
+
+
+# Plotting Fast and Greedy
+V(sub1)$community <- cfg$membership
+num_comms <- length(unique(V(sub1)$community))
+com_colors <- unique_palette[1:num_comms]
+V(sub1)$color <- com_colors[V(sub1)$community]
+
+par(mar = no_marg)
+plot(sub1,
+     vertex.size = 4,
+     vertex.label = NA,
+     vertex.color = V(sub1)$color,
+     vertex.frame.color = "gray40",
+     edge.color = "gray70",
+     edge.width = 0.5,
+     edge.curved = 0.3,
+     mark.groups = communities(cw),
+     mark.col = "tan",
+     mark.border = "black",
+     main = "F&G Communities (colored hulls)")
+
+
+# Plotting Louvain
+V(sub1)$community <- clouv$membership
+num_comms <- length(unique(V(sub1)$community))
+com_colors <- unique_palette[1:num_comms]
+V(sub1)$color <- com_colors[V(sub1)$community]
+
+par(mar = no_marg)
+plot(sub1,
+     vertex.size = 4,
+     vertex.label = NA,
+     vertex.color = V(sub1)$color,
+     vertex.frame.color = "gray40",
+     edge.color = "gray70",
+     edge.width = 0.5,
+     edge.curved = 0.3,
+     mark.groups = communities(cw),
+     mark.col = "grey95",
+     mark.border = "#88398A",
+     main = "Louvain Communities (colored hulls)")
+```
+
+
+
+```{r}
+# Original (unordered) adjacency matrix
+A <- as_adjacency_matrix(sub1, sparse = TRUE)
+image(A, main = "Adjacency Matrix - original node order",
+      xlab = "Node", ylab = "Node")
+
+# Reorder by Fast Greedy community membership
+ord <- order(cw$membership)
+A_reordered <- A[ord, ord]
+
+image(A_reordered,
+      main = "Adjacency Matrix — reordered by community (Fast Greedy)",
+      xlab = "Node (reordered)", ylab = "Node (reordered)")
+```
+
