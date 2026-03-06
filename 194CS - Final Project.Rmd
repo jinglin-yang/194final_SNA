@@ -1,46 +1,77 @@
 ---
-title: "194CS - Final Project"
-author: "Brandon Wong II"
+title: "194CS - PA Road Network Analysis"
+author: "Brandon Wong II, "
 date: "2026-03-05"
 output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-## Loading Dataset
-
-```{r}
+knitr::opts_chunk$set(echo = FALSE)
 library(igraph)
-library(igraphdata)
 library(Matrix)
 library(dplyr)
-
-# Margin helpers
-def_marg <- c(5.1, 4.1, 4.1, 2.1)
-no_marg  <- c(0, 0, 0, 0)
-
-pa_road_edges <- read.table(
-  "roadNet-PA.txt",
-  comment.char = "#",
-  col.names = c("from", "to")
-)
-
-pa_road_network <- graph_from_data_frame(pa_road_edges, directed=FALSE)
-
-# Removes duplicate edges / self-loops
-simple_pa_road <- simplify(pa_road_network)
-summary(simple_pa_road)
 ```
 
-```{r}
-V(simple_pa_road)$name
-```
 
-```{r}
-V(simple_pa_road)[3]
-```
+# Introduction
+
+Brief description of the network dataset.
+Objectives of the analysis.
+
+The network we chose is a Pennsylvania Road Network from SNAP, Stanford Network Analysis Project. The network has 1088092 nodes and 1541898 edges and is undirected with a vertex name attribute. 
+
+Our analysis has two objectives:
+
+- Can we detect the Pennsylvania "Town" Structure within our Network
+
+- Determine what keeps these "Towns" connected to each other 
+
+# Methodology
+Steps followed in data processing.
+Tools and packages used (e.g., R, igraph).
+
+### Data Processing // Subgraph Selection
+
+To import our dataset, we first downloaded the .txt file from the SNAP website. Then we read in our .txt file using read.table which reads our .txt file in table format and creates a datafame from it. Now, we have our network edges in a dataframe from which we can just call graph_from_data_frame to convert our dataframe of edges into an actual graph object. 
+
+In doing this, we are given a graph object with 1088092 nodes and 3083796 edges, which is exactly double the number of edges we should have in our network. What happened here, is that our .txt file represents an undirected edge by listing it twice, i.e A -> B and B -> A, meaning when we call our graph_from_data_frame function, it treats these as two separate edges between the two nodes and thus we get double the edges we should. To fix this, we just called the simplify function on our importted network, which gets rid of duplicate edges and self-loops, leaving us with the correct number of nodes and edges.
+
+Now we have our network successfully imported, however, our network is too large to visualize or run community detection algorithms on, so we instead extracted two types of subgraphs from our whole network:
+
+- *Hub-Centric Subgraphs* - These are subgraphs that are built iteratively using high-degree nodes and their neighbors within 15 steps. The steps for doing this are as follows:
+
+  - 1. Find the degrees of all remaining nodes, sort in descending order and pull the index of the highest degree node as the start_node (if on Iteration 1, this would just use the whole network, simple_pa_road)
+
+  - 2. Using the start node, build out the neighborhood and extract the node ID's using ego(), these are your subgraphs neighborhood nodes
+
+  - 3. Create the actual subgraph using induced_subgraph() with the remaining network (or full network) and neighborhood nodes
+
+  - 4. Plot the generated subgraph plot(sub1, ...)
+
+  - 5. Find the remaining nodes by deleting the neighborhood nodes you used from the remaining network nodes (or whole network nodes if Iteration 1)
+
+  - 6. Repeat
+
+- *Randomly Sampled Subgraphs* - These are the subgraphs built iteratively using randomly sampled nodes and their neighbors within 15 steps. We use these subgraphs to see if our "town" structure exists outside of the major hubs. The steps for generating these subgraphs are the same as generating our Hub-Centric subgraphs, except here we do not need to find the highest degree start_node and instead we just sample 1 node from our remaining nodes. 
+
+### Tools and Packages
+
+We used R as our programming language to perform our analysis.
+
+The packages we used were as follows:
+
+- igraph: Used to interact with our network
+
+- Matrix: Used to create the adjacency matrices
+
+- dplyr: Used for data manipulation and cleaning
+
+
+# Analysis
+
+Description and visualization of subgraphs.
+Metrics and community detection results.
+Interpretation of adjacency matrix reorderings.
 
 ## Generating Subgraphs
 
@@ -75,6 +106,41 @@ Considerations:
 **Why order = 15?**
 
 - We chose an order level of 15 because choosing higher order levels will result in having similar problems to using the whole network, that is, it is computationally expensive. And for lower order levels, we get pretty small subgraphs which would give less meaningful information. 
+
+# Results
+Key findings from the analysis.
+Visual and textual summaries.
+
+
+# Conclusion
+Summary of insights gained.
+Possible future directions for further analysis.
+
+
+# References
+
+List of references and datasets used.
+
+“SNAP: Network Datasets: Pennsylvania Road Network.” Stanford.edu, 2026, snap.stanford.edu/data/roadNet-PA.html. Accessed 6 Mar. 2026.
+
+# Appendix
+
+```{r}
+# Margin helpers
+def_marg <- c(5.1, 4.1, 4.1, 2.1)
+no_marg  <- c(0, 0, 0, 0)
+
+pa_road_edges <- read.table(
+  "roadNet-PA.txt",
+  comment.char = "#",
+  col.names = c("from", "to")
+)
+
+pa_road_network <- graph_from_data_frame(pa_road_edges, directed=FALSE)
+
+# Removes duplicate edges / self-loops
+simple_pa_road <- simplify(pa_road_network)
+```
 
 
 ```{r, cache = TRUE}
@@ -223,63 +289,8 @@ plot(sub5,
      edge.arrow.size = 0.2,
 )
 ```
-```{r}
-# start_node_test1 <- V(remaining_network)[sub2_sorted_deg$ix[1]]
-# sub2_nodes_test1 <- ego(remaining_network, order = 15, nodes = start_node_test1, mode = "all")[[1]]
-# sub2_test1 <- induced_subgraph(remaining_network, sub2_nodes_test1)
-# 
-# plot(sub2_test1,
-#      layout = layout_nicely,
-#      # === vertex properties 
-#      vertex.color = "yellow",
-#      vertex.frame.color = "black",
-#      vertex.shape = "square",
-#      vertex.size = 3,
-#      # === vertex label properties
-#      vertex.label = NA,
-#      # === edge properties
-#      edge.color = "black",
-#      edge.lty = 1,
-#      edge.width = 0.5,
-#      edge.arrow.size = 0.2,
-# )
-# 
-# start_node_test <- sub2_sorted_deg$ix[1]
-# sub2_nodes_test <- ego(remaining_network, order = 15, nodes = start_node_test, mode = "all")[[1]]
-# sub2_test <- induced_subgraph(remaining_network, sub2_nodes_test)
-# 
-# plot(sub2_test,
-#      layout = layout_nicely,
-#      # === vertex properties 
-#      vertex.color = "yellow",
-#      vertex.frame.color = "black",
-#      vertex.shape = "square",
-#      vertex.size = 3,
-#      # === vertex label properties
-#      vertex.label = NA,
-#      # === edge properties
-#      edge.color = "black",
-#      edge.lty = 1,
-#      edge.width = 0.5,
-#      edge.arrow.size = 0.2,
-# )
-```
 
 
-```{r}
-sort(degree(remaining_network), decreasing = TRUE, index = TRUE)
-```
-
-```{r}
-degree(simple_pa_road, start_node_1)
-degree(remaining_network, start_node_2)
-degree(remaining_network1, start_node_3)
-degree(remaining_network2, start_node_4)
-degree(remaining_network3, start_node_5)
-
-node_index <- c(start_node_1, start_node_2, start_node_3, start_node_4, start_node_5)
-node_index
-```
 
 
 ```{r, cache = TRUE}
@@ -295,21 +306,132 @@ for(i in 1:length(my_subs)){
   # Community Detection
   cw <- cluster_walktrap(g)
   cfg <- cluster_fast_greedy(g)
-  clouv <- cluster_louvain(g)
   # Build row
   row <- data.frame(
     Name = sub_names[i],
     Nodes = vcount(g),
     Edges = ecount(g),
-    Start_Node_Degree = ,
     Avg_Degree = mean(degree(g)),
     Transitivity = transitivity(g),
+    Density = edge_density(g),
+    Close_Centrality = centr_clo(g, mode="all", normalized=T)$centralization,
+    Btwn_Centrality = centr_betw(g, directed=F, normalized=T)$centralization,
     Modularity_Walk = modularity(cw),
     Modularity_FG = modularity(cfg),
     Modularity_Louv = modularity(clouv),
     Num_Communities_Walk = length(unique(membership(cw))),
     Num_Communities_FG = length(unique(membership(cfg))),
-    Num_Communities_Louv = length(unique(membership(clouv))),
+    Diameter = diameter(g) 
+  )
+  results <- rbind(results, row)
+}
+
+print(results)
+```
+
+
+
+
+```{r}
+# Subgraph 1
+
+sub_nodes1 <- ego(simple_pa_road, order = 15, nodes = sample(V(simple_pa_road), 1), mode = "all")[[1]]
+
+# 3. Create the actual subgraph object for plotting/analysis
+sub_1 <- induced_subgraph(simple_pa_road, sub_nodes1)
+
+plot(sub_1,
+     layout = layout_nicely,
+     # === vertex properties 
+     vertex.color = "yellow",
+     vertex.frame.color = "black",
+     vertex.shape = "square",
+     vertex.size = 3,
+     # === vertex label properties
+     vertex.label = NA,
+     # === edge properties
+     edge.color = "black",
+     edge.lty = 1,
+     edge.width = 0.5,
+     edge.arrow.size = 0.2,
+)
+
+# Remove these nodes from the main graph to create a "remaining" network
+# We use the names/indices to delete them
+remaining_net <- delete_vertices(simple_pa_road, sub_nodes1)
+
+
+# Subgraph 2 
+
+sub_nodes2 <- ego(remaining_net, order = 15, nodes = sample(V(remaining_net), 1), mode = "all")[[1]]
+sub_2 <- induced_subgraph(remaining_net, sub_nodes2)
+
+plot(sub_2,
+     layout = layout_nicely,
+     # === vertex properties 
+     vertex.color = "yellow",
+     vertex.frame.color = "black",
+     vertex.shape = "square",
+     vertex.size = 3,
+     # === vertex label properties
+     vertex.label = NA,
+     # === edge properties
+     edge.color = "black",
+     edge.lty = 1,
+     edge.width = 0.5,
+     edge.arrow.size = 0.2,
+)
+
+remaining_net1 <- delete_vertices(remaining_net, sub_nodes2)
+
+# Subgraph 3
+sub_nodes3 <- ego(remaining_net1, order = 15, nodes = sample(V(remaining_net1), 1), mode = "all")[[1]]
+sub_3 <- induced_subgraph(remaining_net1, sub_nodes3)
+
+plot(sub_3,
+     layout = layout_nicely,
+     # === vertex properties 
+     vertex.color = "yellow",
+     vertex.frame.color = "black",
+     vertex.shape = "square",
+     vertex.size = 3,
+     # === vertex label properties
+     vertex.label = NA,
+     # === edge properties
+     edge.color = "black",
+     edge.lty = 1,
+     edge.width = 0.5,
+     edge.arrow.size = 0.2,
+)
+```
+
+```{r}
+my_subs <- list(sub_1, sub_2, sub_3)
+sub_names <- c("Subgraph 1", "Subgraph 2", "Subgraph 3")
+
+results <- data.frame()
+
+for(i in 1:length(my_subs)){
+  g <- my_subs[[i]]
+  
+  # Community Detection
+  cw <- cluster_walktrap(g)
+  cfg <- cluster_fast_greedy(g)
+  # Build row
+  row <- data.frame(
+    Name = sub_names[i],
+    Nodes = vcount(g),
+    Edges = ecount(g),
+    Avg_Degree = mean(degree(g)),
+    Transitivity = transitivity(g),
+    Density = edge_density(g),
+    Close_Centrality = centr_clo(g, mode="all", normalized=T)$centralization,
+    Btwn_Centrality = centr_betw(g, directed=F, normalized=T)$centralization,
+    Modularity_Walk = modularity(cw),
+    Modularity_FG = modularity(cfg),
+    Modularity_Louv = modularity(clouv),
+    Num_Communities_Walk = length(unique(membership(cw))),
+    Num_Communities_FG = length(unique(membership(cfg))),
     Diameter = diameter(g) 
   )
   results <- rbind(results, row)
@@ -344,12 +466,12 @@ plot(sub1,
      vertex.label = NA,
      vertex.color = V(sub1)$color,
      vertex.frame.color = "gray40",
-     edge.color = "gray70",
+     edge.color = "black",
      edge.width = 0.5,
      edge.curved = 0.3,
      mark.groups = communities(cw),
-     mark.col = "tan",
-     mark.border = "black",
+     mark.col = "grey95",
+     mark.border = "red",
      main = "Walktrap Communities (colored hulls)")
 
 
@@ -365,12 +487,12 @@ plot(sub1,
      vertex.label = NA,
      vertex.color = V(sub1)$color,
      vertex.frame.color = "gray40",
-     edge.color = "gray70",
+     edge.color = "black",
      edge.width = 0.5,
      edge.curved = 0.3,
      mark.groups = communities(cw),
-     mark.col = "tan",
-     mark.border = "black",
+     mark.col = "grey95",
+     mark.border = "red",
      main = "F&G Communities (colored hulls)")
 
 
@@ -386,29 +508,35 @@ plot(sub1,
      vertex.label = NA,
      vertex.color = V(sub1)$color,
      vertex.frame.color = "gray40",
-     edge.color = "gray70",
+     edge.color = "black",
      edge.width = 0.5,
      edge.curved = 0.3,
      mark.groups = communities(cw),
      mark.col = "grey95",
-     mark.border = "#88398A",
+     mark.border = "red",
      main = "Louvain Communities (colored hulls)")
 ```
-
-
 
 ```{r}
 # Original (unordered) adjacency matrix
 A <- as_adjacency_matrix(sub1, sparse = TRUE)
-image(A, main = "Adjacency Matrix - original node order",
+image(A, main = "Adjacency Matrix - original node order", col.region = c("red"),
       xlab = "Node", ylab = "Node")
 
-# Reorder by Fast Greedy community membership
+# Reorder by Walktrap community membership
 ord <- order(cw$membership)
 A_reordered <- A[ord, ord]
 
 image(A_reordered,
-      main = "Adjacency Matrix — reordered by community (Fast Greedy)",
+      main = "Adjacency Matrix — reordered by community (Walktrap)", col.region = c("red"),
+      xlab = "Node (reordered)", ylab = "Node (reordered)")
+
+# Reorder by Fast Greedy community membership
+ord <- order(cfg$membership)
+A_reordered1 <- A[ord, ord]
+
+image(A_reordered1,
+      main = "Adjacency Matrix — reordered by community (Fast Greedy)", col.region = c("red"),
       xlab = "Node (reordered)", ylab = "Node (reordered)")
 ```
 
