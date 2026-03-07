@@ -1,8 +1,10 @@
 ---
 title: "194CS - PA Road Network Analysis"
-author: "Brandon Wong II, "
+author: 'Brandon Wong II, '
 date: "2026-03-05"
-output: pdf_document
+output:
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
@@ -132,7 +134,7 @@ def_marg <- c(5.1, 4.1, 4.1, 2.1)
 no_marg  <- c(0, 0, 0, 0)
 
 pa_road_edges <- read.table(
-  "roadNet-PA.txt",
+  "~/Desktop/194final_SNA/roadNet-PA.txt",
   comment.char = "#",
   col.names = c("from", "to")
 )
@@ -143,7 +145,7 @@ pa_road_network <- graph_from_data_frame(pa_road_edges, directed=FALSE)
 simple_pa_road <- simplify(pa_road_network)
 ```
 
-
+## Subgraphs generations using high degree nodes
 ```{r, cache = TRUE}
 # Subgraph 1
 # 1. Select the first starting node (highest degree)
@@ -173,6 +175,7 @@ plot(sub1,
      edge.lty = 1,
      edge.width = 0.5,
      edge.arrow.size = 0.2,
+     main = "Hub 1"
 )
 
 # Remove these nodes from the main graph to create a "remaining" network
@@ -206,6 +209,7 @@ plot(sub2,
      edge.lty = 1,
      edge.width = 0.5,
      edge.arrow.size = 0.2,
+     main = "Hub 2"
 )
 
 remaining_network1 <- delete_vertices(remaining_network, sub2_nodes)
@@ -233,6 +237,7 @@ plot(sub3,
      edge.lty = 1,
      edge.width = 0.5,
      edge.arrow.size = 0.2,
+     main = "Hub 3"
 )
 
 remaining_network2 <- delete_vertices(remaining_network1, sub3_nodes)
@@ -261,6 +266,7 @@ plot(sub4,
      edge.lty = 1,
      edge.width = 0.5,
      edge.arrow.size = 0.2,
+     main = "Hub 4"
 )
 
 remaining_network3 <- delete_vertices(remaining_network2, sub4_nodes)
@@ -288,12 +294,22 @@ plot(sub5,
      edge.lty = 1,
      edge.width = 0.5,
      edge.arrow.size = 0.2,
+     main = "Hub 5"
 )
 ```
 
+### Shape interpretation for each subnetwork
 
+**Focus on interpreting the first subgraph with one paragraph, and generalize the pattern for the rest with may be 1-3 sentences**
 
+Subnetwork 1:
 
+Subnetwork 2:
+Subnetwork 3:
+Subnetwork 4:
+Subnetwork 5:
+
+## Subgraphs Metrics
 ```{r, cache = TRUE}
 my_subs <- list(sub1, sub2, sub3, sub4, sub5)
 my_nodes <- c(start_node_1, start_node_2, start_node_3, start_node_4, start_node_5)
@@ -319,7 +335,6 @@ for(i in 1:length(my_subs)){
     Btwn_Centrality = centr_betw(g, directed=F, normalized=T)$centralization,
     Modularity_Walk = modularity(cw),
     Modularity_FG = modularity(cfg),
-    Modularity_Louv = modularity(clouv),
     Num_Communities_Walk = length(unique(membership(cw))),
     Num_Communities_FG = length(unique(membership(cfg))),
     Diameter = diameter(g) 
@@ -330,9 +345,10 @@ for(i in 1:length(my_subs)){
 print(results)
 ```
 
+### Mectrics Interpretation
+**1-2 Paragraph**
 
-
-
+## 3 Random subgraphs
 ```{r}
 # Subgraph 1
 
@@ -355,6 +371,7 @@ plot(sub_1,
      edge.lty = 1,
      edge.width = 0.5,
      edge.arrow.size = 0.2,
+     main = "Random Hub 1"
 )
 
 # Remove these nodes from the main graph to create a "remaining" network
@@ -381,6 +398,7 @@ plot(sub_2,
      edge.lty = 1,
      edge.width = 0.5,
      edge.arrow.size = 0.2,
+     main = "Random Hub 2"
 )
 
 remaining_net1 <- delete_vertices(remaining_net, sub_nodes2)
@@ -403,14 +421,20 @@ plot(sub_3,
      edge.lty = 1,
      edge.width = 0.5,
      edge.arrow.size = 0.2,
+     main = "Random Hub 3"
 )
 ```
 
+### Shape Interpretation
+
+**(1-2 paragraphs) Briefly interpret all 3 subgraphs initialized with randomly sampled node, compare the structure of these subgraphs to subgraphs initialized with high degree node with 1-3 sentences**
+
+## Random subgraphs metrics
 ```{r}
 my_subs <- list(sub_1, sub_2, sub_3)
 sub_names <- c("Subgraph 1", "Subgraph 2", "Subgraph 3")
 
-results <- data.frame()
+random_results <- data.frame()
 
 for(i in 1:length(my_subs)){
   g <- my_subs[[i]]
@@ -430,23 +454,25 @@ for(i in 1:length(my_subs)){
     Btwn_Centrality = centr_betw(g, directed=F, normalized=T)$centralization,
     Modularity_Walk = modularity(cw),
     Modularity_FG = modularity(cfg),
-    Modularity_Louv = modularity(clouv),
     Num_Communities_Walk = length(unique(membership(cw))),
     Num_Communities_FG = length(unique(membership(cfg))),
     Diameter = diameter(g) 
   )
-  results <- rbind(results, row)
+  random_results <- rbind(random_results, row)
 }
 
-print(results)
+print(random_results)
 ```
 
+### Mectrics Intepretation
+**Interpret these random node subgraphs mectrics for 1 paragraph**
+
+## Community Detection (subnetwork 1)
 ```{r, cache = TRUE}
 set.seed(932085) 
 
 cw <- cluster_walktrap(sub1)
 cfg <- cluster_fast_greedy(sub1)
-clouv <- cluster_louvain(sub1)
 
 
 # Color palette
@@ -495,29 +521,19 @@ plot(sub1,
      mark.col = "grey95",
      mark.border = "red",
      main = "F&G Communities (colored hulls)")
-
-
-# Plotting Louvain
-V(sub1)$community <- clouv$membership
-num_comms <- length(unique(V(sub1)$community))
-com_colors <- unique_palette[1:num_comms]
-V(sub1)$color <- com_colors[V(sub1)$community]
-
-par(mar = no_marg)
-plot(sub1,
-     vertex.size = 4,
-     vertex.label = NA,
-     vertex.color = V(sub1)$color,
-     vertex.frame.color = "gray40",
-     edge.color = "black",
-     edge.width = 0.5,
-     edge.curved = 0.3,
-     mark.groups = communities(cw),
-     mark.col = "grey95",
-     mark.border = "red",
-     main = "Louvain Communities (colored hulls)")
 ```
 
+### Walktrap
+**Explain the walktrap algorithm**
+
+### Fast Greedy
+**Explain the fast greedy algorithm**
+
+### Subgraph Interpretation
+**Interpret the plots on subnetwork1 with different community detection method**
+
+
+## Adjacency Matrix Reodering (subnetwork 1)
 ```{r}
 # Original (unordered) adjacency matrix
 A <- as_adjacency_matrix(sub1, sparse = TRUE)
@@ -540,4 +556,122 @@ image(A_reordered1,
       main = "Adjacency Matrix — reordered by community (Fast Greedy)", col.region = c("red"),
       xlab = "Node (reordered)", ylab = "Node (reordered)")
 ```
+
+### Adjacency Matrix Intepretation
+
+**Intepret adjacency matrix for one paragraph**
+
+## Resilence Analysis
+
+### Objectives
+**Objective of testing the resilience**
+
+
+```{r}
+# This chunk gives us the articulation points for each subnetwork, and the betweenness centrality of all articulation points within each subnetwork. And I store the top 5 highest centrality articulation nodes to be removed
+
+
+artic_points1 <- articulation_points(sub1)
+cat("Number of articulation points for hub 1:", length(artic_points1), '\n')
+betweenness_sub1 <- betweenness(sub1, 
+                                v = artic_points1,
+                                directed = FALSE)
+high_between_artic_node1 <- sort(betweenness_sub1, decreasing = T, index.return = T)$ix[1:5]
+artic_points2 <- articulation_points(sub2)
+cat("Number of articulation points for hub 2:", length(artic_points2), '\n')
+betweenness_sub2 <- betweenness(sub2, 
+                                v = artic_points2,
+                                directed = FALSE)
+high_between_artic_node2 <- sort(betweenness_sub2, decreasing = T, index.return = T)$ix[1:5]
+artic_points3 <- articulation_points(sub3)
+cat("Number of articulation points for hub 3:", length(artic_points3), '\n')
+betweenness_sub3 <- betweenness(sub3, 
+                                v = artic_points3,
+                                directed = FALSE)
+high_between_artic_node3 <- sort(betweenness_sub3, decreasing = T, index.return = T)$ix[1:5]
+artic_points4 <- articulation_points(sub4)
+cat("Number of articulation points for hub 4:", length(artic_points4), '\n')
+betweenness_sub4 <- betweenness(sub4, 
+                                v = artic_points4,
+                                directed = FALSE)
+high_between_artic_node4 <- sort(betweenness_sub4, decreasing = T, index.return = T)$ix[1:5]
+artic_points5 <- articulation_points(sub5)
+cat("Number of articulation points for hub 5:", length(artic_points5), '\n')
+betweenness_sub5 <- betweenness(sub5, 
+                                v = artic_points5,
+                                directed = FALSE)
+high_between_artic_node5 <- sort(betweenness_sub5, decreasing = T, index.return = T)$ix[1:5]
+```
+**Explain why remove high betweenness articulation point**
+
+
+```{r eval = F, echo = F}
+# These prints the 5 nodes for each subnetwork
+high_between_artic_node1
+high_between_artic_node2
+high_between_artic_node3
+high_between_artic_node4
+high_between_artic_node5
+```
+**Explain the removal for 1-2 sentences**
+remove the 5 nodes in each network
+```{r}
+removal_sub1 <- delete_vertices(sub1, high_between_artic_node1)
+removal_sub2 <- delete_vertices(sub2, high_between_artic_node1)
+removal_sub3 <- delete_vertices(sub3, high_between_artic_node1)
+removal_sub4 <- delete_vertices(sub4, high_between_artic_node1)
+removal_sub5 <- delete_vertices(sub5, high_between_artic_node1)
+```
+
+
+```{r}
+removal_results <- data.frame()
+removal_subs <- list(sub1, removal_sub1, sub2, removal_sub2, sub3, removal_sub3, sub4, removal_sub4, sub5, removal_sub5)
+sub_names <- c("Hub 1", "Removal Hub 1", "Hub 2","Removal Hub 2", "Hub 3","Removal Hub 3", "Hub 4", "Removal Hub 4", "Hub 5", "Removal Hub 5")
+
+for(i in 1:length(removal_subs)){
+  g <- removal_subs[[i]]
+  
+  # Community Detection
+  cw <- cluster_walktrap(g)
+  
+  # Build row
+  row <- data.frame(
+    Name = sub_names[i],
+    Nodes = vcount(g),
+    Edges = ecount(g),
+    Num_Comp = components(g)$no,
+    Num_Disconnected_Pairs = distance_table(g,  directed = FALSE)$unconnected,
+    Largest_Comp = max(components(g)$csize),
+    Transitivity = round(transitivity(g),4),
+    Diameter = diameter(g),
+    Btwn_Centrality = round(centr_betw(g, directed = F)$centralization,4),
+    Close_Centrality = round(centr_clo(g)$centralization,4),
+    Modularity_Walk = round(modularity(cw),4),
+    Num_Communities_Walk = length(unique(membership(cw)))
+  )
+  removal_results <- rbind(removal_results, row)
+}
+
+removal_results$Pctg_Disconnected_Pairs <- round(removal_results$Num_Disconnected_Pairs /
+          (removal_results$Nodes * (removal_results$Nodes - 1) / 2) * 100, 4)
+```
+
+
+```{r}
+print(removal_results)
+# print(results)
+```
+
+### Mectrics Comparison and Interpretation
+
+**One paragraph to summarize the differences**
+result: the number of connected components stay the same for sub3 and sub5, it is likely that these two networks is more like a town that does not need highway or bridge connections between regions/districts. For removal_sub1, 2, 4 which has `NaN` closeness centrality centralization value indicates that there are isolated nodes with no connections. Number of communities drop after removal of high betweenness articulation node
+
+Those top 5 articulation points were major highway junctions or interchange nodes that connected otherwise distinct geographic regions
+Their high betweenness means most cross-region traffic flowed through them
+Community detection interpreted these bridge nodes as boundaries, creating more communities
+After removal, the algorithm no longer sees those artificial boundaries, so neighboring regions consolidate
+
+
 
