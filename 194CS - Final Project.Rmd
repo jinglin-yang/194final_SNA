@@ -254,6 +254,45 @@ print(results_hub)
 ### Mectrics Interpretation
 
 **1-2 Paragraph**
+-   Node: the road intersection in PA.
+
+-   Edge: road segment directly connecting two nodes/ intersections. Like the road connecting node A and node B where it typical records as two edges between two nodes. But, we just directly record one edge between them, applying simplify function.
+
+-   Adv_degree: means the average degree of each note connection. In our dataset, it means the average number of roads connecting at each intersection in PA. For example, in the dataset, all hubs have average degree between **2.53 and 3.28**, meaning each Pennsylvania intersection typically connects to 2-3 other intersections.
+
+    -   Hub3 has the largest average degree of 3.28, which indicates on average, each node in Hub3 has approximately 3 roads segments connecting to other intersections. suggesting more crossroad-style intersections
+
+    -   Hub 4 has the lowest (2.53) suggesting more dead ends and T-junctions.
+
+-   Transitivity:
+
+    -   **In road context:** If intersection A connects to B, and B connects to C, how likely does C also connect back to A forming a road loop or city block.
+
+    -   **Interpretation:**
+
+        > Looking through hub1 to hub5, we find that all hubs show very low transitivity between **0.045 and 0.071**, meaning only 4-7% of possible road triangles actually exist. Hub 4 has the highest (0.071) suggesting more city-block style loops, while Hub 5 has the lowest (0.045) suggesting mostly straight linear roads.
+
+-   Density:
+
+    -   **In road context:** Out of every possible road that could connect any two intersections, what fraction actually exists.
+
+    -   **Interpretation:**
+
+        > All hubs have extremely low density between **0.0016 and 0.0049**, meaning less than 0.5% of all possible road connections exist. Hub 3 is densest (0.0049) despite being the smallest, suggesting a compact well-connected neighborhood. Hub 2 is least dense (0.0016) despite having the most nodes — suggesting a large spread-out suburban area where intersections are far apart.
+
+-   Close_Centrality: How few road segments an intersection needs to travel through to reach any other intersection in the neighborhood. Higher closeness means better **traffic flow and accessibility** throughout the area.
+
+    -   **Interpretation:** Take hub3 as an example.It has the lowest closeness (0.050). It means drivers need **more turns and road segments** to reach distant intersections.
+
+-   Btwn_Centrality: How many driver routes must pass through a given intersection — identifying bottleneck intersections critical to traffic flow. High betweenness hubs are most **vulnerable to traffic disruption** if key intersections are closed or damaged.
+
+    -   **Interpretation:** Hub 3 has the lowest betweenness (0.188) suggesting more **alternative routes exist** — drivers have more flexibility to avoid any single intersection.
+
+-   Modularity & Communities: How strongly Pennsylvania roads cluster into distinct local neighborhoods with few roads connecting between them.
+
+    -   **Interpretation:** All hubs show extremely high modularity between **0.80 and 0.90**. This confirms Pennsylvania roads naturally form **tight geographic clusters** with few cross-neighborhood connections.
+
+    -    Fast Greedy consistently finds fewer communities (16-31) than Walktrap (27-112), but both agree on strong community structure. Hub 2 has the most communities (112 by Walktrap) reflecting its large size and many disconnected sub-neighborhoods, while Hub 3 has the fewest (27) reflecting its compact connected structure.
 
 ## Community Detection (subnetwork 1)
 
