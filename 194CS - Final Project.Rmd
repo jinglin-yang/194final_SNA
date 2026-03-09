@@ -16,7 +16,7 @@ library(dplyr)
 
 # Introduction
 
-In this study, we are using the roadNet-PA dataset. It is a large road network from the Standord Network Analysis Project. It represents the road infrastructure of Pennsylvania as a graph. In this network, nodes represent road intersections, or endpoints, and edges represent road segments connecting those intersections. THe dataset contains about 1.09 million nodes and 1.5 million edges, making it a large-scale real-world network, commonly used for studying network structure, connectivity, and resilience. Because it models an actual road system, it is useful for us to analyze how transportation networks respond to random failures and disruptions. Furthermore, by analyzing cluseters presenting in the graph, we can indicate the transportation hubs and metropolitan areas that serves as critical intersections.
+In this study, we are using the roadNet-PA dataset. It is a large road network from the Standord Network Analysis Project. It represents the road infrastructure of Pennsylvania as a graph. In this network, nodes represent road intersections, or endpoints, and edges represent road segments connecting those intersections. The dataset contains about 1.09 million nodes and 1.5 million edges, making it a large-scale real-world network, commonly used for studying network structure, connectivity, and resilience. Because it models an actual road system, it is useful for us to analyze how transportation networks respond to random failures and disruptions. Furthermore, by analyzing cluseters presenting in the graph, we can indicate the transportation hubs and metropolitan areas that serves as critical intersections.
 
 Objectives of the analysis.
 
