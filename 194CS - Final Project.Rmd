@@ -154,7 +154,7 @@ def_marg <- c(5.1, 4.1, 4.1, 2.1)
 no_marg  <- c(0, 0, 0, 0)
 
 pa_road_edges <- read.table(
-  "~/Desktop/194final_SNA/roadNet-PA.txt",
+  "roadNet-PA.txt",
   comment.char = "#",
   col.names = c("from", "to")
 )
