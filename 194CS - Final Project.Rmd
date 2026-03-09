@@ -1,108 +1,142 @@
 ---
 title: "194CS - PA Road Network Analysis"
-author: "Brandon Wong II, "
+author: 'Brandon Wong II, '
 date: "2026-03-05"
-output: pdf_document
+output:
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 library(igraph)
 library(Matrix)
 library(dplyr)
-set.seed(2048338)
 ```
-
 
 # Introduction
 
-The roadNet-PA dataset found on Stanford's Network Analysis Project, or SNAP for short, is the subject of our analysis. This dataset represents the Pennsylvania road infrastructure as an undirected graph network where **nodes** (or vertices) are intersections or endpoints (dead-ends / cul-de-sacs) and **edges** are the roads that connect them. The network has rough 1.9 million nodes and 1.5 million edges which makes it a relatively comprehensive model of a real-world transportation system. 
+In this study, we are using the roadNet-PA dataset. It is a large road network from the Standord Network Analysis Project. It represents the road infrastructure of Pennsylvania as a graph. In this network, nodes represent road intersections, or endpoints, and edges represent road segments connecting those intersections. THe dataset contains about 1.09 million nodes and 1.5 million edges, making it a large-scale real-world network, commonly used for studying network structure, connectivity, and resilience. Because it models an actual road system, it is useful for us to analyze how transportation networks respond to random failures and disruptions. Furthermore, by analyzing cluseters presenting in the graph, we can indicate the transportation hubs and metropolitan areas that serves as critical intersections.
 
-Our analysis has two primary objectives:
+Objectives of the analysis.
 
-- "Town" Detection: Can we find distinct Functional Neighborhoods or "Towns" within major hubs using community detection algorithms and how does this "town" structure differ between major hubs (urban centers) and randomly sampled hubs (rural regions)?
+The network we chose is a Pennsylvania Road Network from SNAP, Stanford Network Analysis Project. The network has 1088092 nodes and 1541898 edges and is undirected with a vertex name attribute.
 
-- "Town" Connectivity & Resilience: How does the removal of high-betweenness articulation points impact the structural resilience of these "Towns"? In other words, is Pennsylvania's road infrastructure susceptible to major intersection closures or does it offer alternate paths for traversing the network?
+Our analysis has two objectives:
+
+-   Can we detect the Pennsylvania "Town" Structure within our Network
+
+-   Determine what keeps these "Towns" connected to each other
 
 # Methodology
 
-### Data Processing
+Steps followed in data processing. Tools and packages used (e.g., R, igraph).
 
-To import our dataset, we first downloaded the .txt file (roadNet-PA.txt) from the SNAP website. Then, we imported the data using `read.table` which reads our .txt file in table format and creates a datafame from it. Now, we have our network edges in a dataframe from which we can just call `graph_from_data_frame` to convert our dataframe of edges into an actual graph object. 
+### Data Processing // Subgraph Selection
 
-After doing this, we have a graph object with 1088092 nodes and 3083796 edges, which is exactly double the number of edges we should have in our network. What happened here, is that our .txt file represents an undirected edge by listing it twice, i.e A -> B and B -> A, meaning when we call our graph_from_data_frame function, it treats these as two separate edges between the two nodes and thus we get double the edges we should. To fix this, we called the simplify function on our imported network, which removes duplicate edges and self-loops, leaving us with the correct number of nodes and edges in our network.
+To import our dataset, we first downloaded the .txt file from the SNAP website. Then we read in our .txt file using read.table which reads our .txt file in table format and creates a datafame from it. Now, we have our network edges in a dataframe from which we can just call graph_from_data_frame to convert our dataframe of edges into an actual graph object.
 
-### Subgraph Generation
+In doing this, we are given a graph object with 1088092 nodes and 3083796 edges, which is exactly double the number of edges we should have in our network. What happened here, is that our .txt file represents an undirected edge by listing it twice, i.e A -\> B and B -\> A, meaning when we call our graph_from_data_frame function, it treats these as two separate edges between the two nodes and thus we get double the edges we should. To fix this, we just called the simplify function on our importted network, which gets rid of duplicate edges and self-loops, leaving us with the correct number of nodes and edges.
 
-Due to how computationally expensive it is to visualize and analyze 1 million+ nodes, we made use of two similar subgraph generation strategies:
+Now we have our network successfully imported, however, our network is too large to visualize or run community detection algorithms on, so we instead extracted two types of subgraphs from our whole network:
 
-**Hub-Centric Subgraphs** - The main idea of this subgraph generation is to mimic selecting urban centers and their surrounding areas. By iteratively choosing the highest-degree node of the network as the start node we build out neighborhoods to an order of 15 steps which effectively gives us subgraphs representing 5 different urban centers of PA's road network. 
+-   *Hub-Centric Subgraphs* - These are subgraphs that are built iteratively using high-degree nodes and their neighbors within 15 steps. The steps for doing this are as follows:
 
-The steps we used to do this are as follows:
+    -   
 
-1. Find the degrees of all remaining nodes, sort in descending order and pull the index of the highest degree node as the start node (if on Iteration 1, use the whole network: simple_pa_road)
+        1.  Find the degrees of all remaining nodes, sort in descending order and pull the index of the highest degree node as the start_node (if on Iteration 1, this would just use the whole network, simple_pa_road)
 
-2. Using found start node, build out the neighborhood at an order of 15 steps and extract the node ID's using ego(), these are your "urban centers" nodes that will be used to generate the subgraph.  
+    -   
 
-3. Create the actual subgraph using induced_subgraph() with the remaining network (or full network) and urban center nodes
+        2.  Using the start node, build out the neighborhood and extract the node ID's using ego(), these are your subgraphs neighborhood nodes
 
-4. Plot the generated subgraph plot(sub1, ...)
+    -   
 
-5. Find the remaining nodes by deleting the neighborhood nodes you used from the remaining network nodes (or whole network nodes if Iteration 1)
+        3.  Create the actual subgraph using induced_subgraph() with the remaining network (or full network) and neighborhood nodes
 
-6. Repeat
+    -   
 
-**Randomly Sampled Subgraphs** - These subgraphs were generated in a similar manner to the Hub-Centric Subgraphs, where the only difference is that instead of selecting the highest degree node as the starting point, we randomly sample 1 node from all / remaining nodes as the start node. The idea behind generating these subgraphs is to see if our "town" structure exists outside of the major hubs. 
+        4.  Plot the generated subgraph plot(sub1, ...)
+
+    -   
+
+        5.  Find the remaining nodes by deleting the neighborhood nodes you used from the remaining network nodes (or whole network nodes if Iteration 1)
+
+    -   
+
+        6.  Repeat
+
+-   *Randomly Sampled Subgraphs* - These are the subgraphs built iteratively using randomly sampled nodes and their neighbors within 15 steps. We use these subgraphs to see if our "town" structure exists outside of the major hubs. The steps for generating these subgraphs are the same as generating our Hub-Centric subgraphs, except here we do not need to find the highest degree start_node and instead we just sample 1 node from our remaining nodes.
 
 ### Tools and Packages
 
-We used R and RStudio as our programming language and platform to perform our analysis.
+We used R as our programming language to perform our analysis.
 
 The packages we used were as follows:
 
-- igraph: Used for network manipulation, community detection, and metric calculations
+-   igraph: Used to interact with our network
 
-- Matrix: Used to create the adjacency matrices
+-   Matrix: Used to create the adjacency matrices
 
-- dplyr: Used for data manipulation and cleaning
-
+-   dplyr: Used for data manipulation and cleaning
 
 # Analysis
 
-Description and visualization of subgraphs.
-Metrics and community detection results.
-Interpretation of adjacency matrix reorderings.
+Description and visualization of subgraphs. Metrics and community detection results. Interpretation of adjacency matrix reorderings.
 
-### Description and Visualization of Subgraphs
+## Generating Subgraphs
 
-To visualize our subgraphs, we used the igraph plot function with the layout function of layout_nicely. The Layout_nicely function chooses automatically the most appropriate layout algorithm for the graph. The reason for only choosing this layout, is that other layout algorithms are unideal for visualizing road networks, for example, layout_on_grid or layout_in_circle plot the nodes as described, which for a road network, doesn't make sense for intersections to be in a circle or on a uniform grid as this is not how a road network would look in reality. As such we use layout_nicely to plot our network since it automatically selects the most optimal layout for our subnetworks. 
+Here, we generate subgraphs iteratively using the following steps:
 
-Comparing the Hub-Centric Subgraphs to the Randomly Sampled Subgraphs, we can see that our Hub-Centric subgraphs tend to have much more nodes or intersections than the Randomly Sampled Subgraphs. This reveals that our methods for generating these subgraphs did what we want them to, that is, 
+-   
 
-have areas with much denser collections of nodes or intersections which reveals to us the neighborhoods or town structure of these urban center whereas for our Randomly Sampled Subgraphs, they have much more sparse groups of intersections 
+    1.  Find the degrees of all remaining nodes, sort in descending order and pull the index of the highest degree node as the start_node (if on Iteration 1, this would just use the whole network, simple_pa_road)
 
+-   
 
-### Network Metrics
+    2.  Using the start node, build out the neighborhood and extract the node ID's using ego(), these are your subgraphs neighborhood nodes
 
+-   
 
+    3.  Create the actual subgraph using induced_subgraph() with the remaining network (or full network) and neighborhood nodes
 
-### Community Detection Results 
+-   
 
+    4.  Plot the generated subgraph plot(sub1, ...)
 
+-   
 
-### Adjacency Matrix Reordering
+    5.  Find the remaining nodes by deleting the neighborhood nodes you used from the remaining network nodes (or whole network nodes if Iteration 1)
 
+-   
 
+    6.  Repeat
+
+Considerations:
+
+**Why generate subgraphs?**
+
+-   We generate subgraphs because our whole network is simply too large to run many of the summary statistics (diameter, betweenness/closeness centrality, average.path.length, etc) or community detection algorithms.
+
+**Why generate iteratively?**
+
+-   
+
+**Why use the highest degree nodes to build the neighborhoods?**
+
+-   We use the highest degree nodes because in a road network, nodes (or intersections) with high degrees (high number of connecting roads) are likely major intersections where many roads converge to. Essentially what this does is find the city centers or hubs that we can use to see how surrounding neighborhoods are structured.
+
+**Why order = 15?**
+
+-   We chose an order level of 15 because choosing higher order levels will result in having similar problems to using the whole network, that is, it is computationally expensive. And for lower order levels, we get pretty small subgraphs which would give less meaningful information.
 
 # Results
-Key findings from the analysis.
-Visual and textual summaries.
 
+Key findings from the analysis. Visual and textual summaries.
 
 # Conclusion
-Summary of insights gained.
-Possible future directions for further analysis.
 
+Summary of insights gained. Possible future directions for further analysis.
 
 # References
 
@@ -120,7 +154,7 @@ def_marg <- c(5.1, 4.1, 4.1, 2.1)
 no_marg  <- c(0, 0, 0, 0)
 
 pa_road_edges <- read.table(
-  "roadNet-PA.txt",
+  "~/Desktop/194final_SNA/roadNet-PA.txt",
   comment.char = "#",
   col.names = c("from", "to")
 )
@@ -131,11 +165,14 @@ pa_road_network <- graph_from_data_frame(pa_road_edges, directed=FALSE)
 simple_pa_road <- simplify(pa_road_network)
 ```
 
+## Subgraphs generations using high degree nodes
 
-```{r hub-generation, cache = TRUE}
+```{r hub-generation, cache = TRUE, fig.height = 5, fig.width = 8}
 current_network <- simple_pa_road
 subgraph_list_hub <- list()
 num_subgraphs <- 5
+
+par(mfrow = c(2, 3),mar = c(0, 1, 1, 1))
 
 for (i in 1:num_subgraphs) {
   
@@ -172,9 +209,19 @@ for (i in 1:num_subgraphs) {
 }
 ```
 
+### Shape interpretation for each subnetwork
+
+**Focus on interpreting the first subgraph with one paragraph, and generalize the pattern for the rest with may be 1-3 sentences**
+
+Subnetwork 1:
+
+Subnetwork 2: Subnetwork 3: Subnetwork 4: Subnetwork 5:
+
+## Subgraphs Metrics
 
 ```{r hub-results , cache = TRUE}
 results_hub <- data.frame()
+sub_names <- c('Hub 1', 'Hub 2', 'Hub 3', 'Hub 4', 'Hub 5')
 
 for(i in 1:length(subgraph_list_hub)){
   g <- subgraph_list_hub[[i]]
@@ -204,16 +251,28 @@ for(i in 1:length(subgraph_list_hub)){
 print(results_hub)
 ```
 
+### Mectrics Interpretation
 
+**1-2 Paragraph**
 
+## Community Detection (subnetwork 1)
+
+### Walktrap
+
+Walktrap is a community detection algorithm that implement the idea of random walks to identify densely connected groups within a network. The intuition is that a random walker traversing a network tends to get trapped within a dense community, nodes being visited frequently are likely to be in the same community. The algorithm computes the distance between nodes based on short random walks (by default 4 steps), then uses this distance to perform hierarchical agglomerative clustering, iteratively merging the most similar nodes or communities until the entire graph collapses into one cluster. This maximize the modularity at some point in this merging hierarchy. The runtime complexity is $O(mn^2)$ in the worst case (where m is the number of edges and n is the number of nodes), making it practical for moderately sized networks. One drawback is that the computational cost is higher compared to fast greedy and louvain.
+
+### Fast Greedy
+
+Fast Greedy is a community detection algorithm that greedily optimize modularity through a agglomerative (bottom-up) hierarchical clustering process. It starts by treating each node as its own separate community, then repeatedly merges pairs of communities that yield the largest increase in modularity at each step, modularity being a measure of how much more densely connected nodes are within communities compared to that in a random graph. The merging process of a community continues until further partition does not yield increases in modulariry. The runtime complexity is to $O(m \log n)$, making it scalable to large sparse networks like social or citation graphs. The process continues until all nodes belong to a single community, producing a full dendrogram, and the partition with the highest modularity score during the merging process is returned as the final community structure. One drawback is that it might overlook small communities.
 
 ```{r community-detection-visualization, cache = TRUE}
 all_colors <- colors()
 vibrant_colors <- all_colors[!grepl("gray|grey", all_colors)]
 unique_palette <- sample(vibrant_colors)
+par(mfrow = c(2, 2),mar = c(0, 1, 1, 0))
 
 # Loop through each subgraph in your list
-for(i in seq_along(subgraph_list_hub)) {
+for(i in 2:3) {
   g <- subgraph_list_hub[[i]]
   
   cw  <- cluster_walktrap(g)
@@ -253,11 +312,19 @@ for(i in seq_along(subgraph_list_hub)) {
 }
 ```
 
+### Subgraph Interpretation
 
+Walktrap produces more smaller and fragmented communities, which is visible from the small isolated colored clusters near the red boundaries, reflecting its sensitivity to local structure through short random walks. The small communities detected are likely to be neighborhoods or blocks that are closely connected by local streets rather than major roadways connecting different part of the town.
+
+In contrast, Fast Greedy produces fewer, larger, and more cohesive communities, which is consistent with its global modularity optimization that tends to miss small communities and merge those communities into larger ones. The larger communities detected are more widespread than those in walktrap and thus likely to be larger districts or regions of the town/city that includes multiple neighborhoods or blocks, and these communities are likely connected by major roadway in the town with high betweenness centrality.
+
+## Adjacency Matrix Reodering (subnetwork 1)
 
 ```{r adj-mat-reorder, cache = TRUE}
 # Original (unordered) adjacency matrix
-A <- as_adjacency_matrix(sub1, sparse = TRUE)
+cw  <- cluster_walktrap(subgraph_list_hub[[1]])
+cfg <- cluster_fast_greedy(subgraph_list_hub[[1]])
+A <- as_adjacency_matrix(subgraph_list_hub[[1]], sparse = TRUE)
 image(A, main = "Adjacency Matrix - original node order", col.region = c("red"),
       xlab = "Node", ylab = "Node")
 
@@ -277,5 +344,129 @@ image(A_reordered1,
       main = "Adjacency Matrix — reordered by community (Fast Greedy)", col.region = c("red"),
       xlab = "Node (reordered)", ylab = "Node (reordered)")
 ```
-       
 
+### Adjacency Matrix Intepretation
+
+**Intepret adjacency matrix for one paragraph**
+
+## Resilience Analysis
+
+### Objectives
+
+The objective of this analysis is to test the resilience of the road network within each 'town' by systematically removing the five nodes with the highest betweenness centrality that are also articulation points. Articulation points are intersections whose removal would disconnect the town into separate regions without any connections. Betweenness centrality measures how frequently a intersection lies on the shortest path from place to place, meaning high betweenness articulation nodes act as critical bridges or bottlenecks in the road network.
+
+That being said, we want to examine the impact of removing those intersection on the traffic system, reflecting how resilience the traffic system is without some crucial intersections. By removing the 5 most critical intersections, we simulate targeted attack scenarios such as road closures, infrastructure failures, or disaster damage at the most vulnerable intersections in the road network. The goal is to observe how the network's connectivity and structure degrade under such disruptions, specifically examining whether the town fragments into isolated regions, how many intersections become unreachable, and how overall connectivity metrics change after each removal. This provides insight into the town's infrastructural vulnerability and helps identify which intersections are most critical to maintain for ensuring a connected and functional road network.
+
+```{r}
+# This chunk gives us the articulation points for each subnetwork, and the betweenness centrality of all articulation points within each subnetwork. And I store the top 5 highest centrality articulation nodes to be removed
+
+
+sub1 <- subgraph_list_hub[[1]]
+sub2 <- subgraph_list_hub[[2]]
+sub3 <- subgraph_list_hub[[3]]
+sub4 <- subgraph_list_hub[[4]]
+sub5 <- subgraph_list_hub[[5]]
+
+artic_points1 <- articulation_points(sub1)
+# cat("Number of articulation points for hub 1:", length(artic_points1), '\n')
+betweenness_sub1 <- betweenness(sub1, v = artic_points1,directed = FALSE)
+high_between_artic_node1 <- sort(betweenness_sub1, decreasing = T, index.return = T)$ix[1:5]
+artic_points2 <- articulation_points(sub2)
+# cat("Number of articulation points for hub 2:", length(artic_points2), '\n')
+betweenness_sub2 <- betweenness(sub2, v = artic_points2, directed = FALSE)
+high_between_artic_node2 <- sort(betweenness_sub2, decreasing = T, index.return = T)$ix[1:5]
+artic_points3 <- articulation_points(sub3)
+# cat("Number of articulation points for hub 3:", length(artic_points3), '\n')
+betweenness_sub3 <- betweenness(sub3, v = artic_points3, directed = FALSE)
+high_between_artic_node3 <- sort(betweenness_sub3, decreasing = T, index.return = T)$ix[1:5]
+artic_points4 <- articulation_points(sub4)
+# cat("Number of articulation points for hub 4:", length(artic_points4), '\n')
+betweenness_sub4 <- betweenness(sub4, v = artic_points4, directed = FALSE)
+high_between_artic_node4 <- sort(betweenness_sub4, decreasing = T, index.return = T)$ix[1:5]
+artic_points5 <- articulation_points(sub5)
+# cat("Number of articulation points for hub 5:", length(artic_points5), '\n')
+betweenness_sub5 <- betweenness(sub5, v = artic_points5, directed = FALSE)
+high_between_artic_node5 <- sort(betweenness_sub5, decreasing = T, index.return = T)$ix[1:5]
+```
+
+```{r}
+library(kableExtra)
+# table includes name of hub and number of arrticulation point
+artic_df <- tibble(Name=c("Hub 1", "Hub 2", "Hub 3", "Hub 4", "Hub 5"), `Articulation Points`=as.numeric(c(length(artic_points1), length(artic_points2), length(artic_points3), length(artic_points4), length(artic_points5))))
+kable(t(artic_df), col.names = NULL, caption = "Number of Articulation points for each hub")
+```
+
+Removing high betweenness articulation node is particularly impactful because these nodes simultaneously serve as connectors that removal disconnects the network and as major traffic bottlenecks through which the most shortest paths flow. Their failure causes both structural fragmentation and disruption to the overall reachability of the road network because people need to find another route to commute from place to place with higher commute cost, such as longer commute time and increase in gas usage.
+
+```{r eval = F, echo = F}
+# These prints the 5 nodes for each subnetwork
+high_between_artic_node1
+high_between_artic_node2
+high_between_artic_node3
+high_between_artic_node4
+high_between_artic_node5
+```
+
+### Choice on number of removal
+
+Selecting appropriate number of intersection removals is also important, because we want a reasonable numbers to simulate the real-world scenarios of road closures and significant enough to observe the disruption on the traffic system. Removing one intersection do not impose significant stress the traffic system but removing ten intersection are not as common in the real world that rarely this many intersections would be shut down at the same time.
+
+```{r}
+removal_sub1 <- delete_vertices(sub1, high_between_artic_node1)
+removal_sub2 <- delete_vertices(sub2, high_between_artic_node1)
+removal_sub3 <- delete_vertices(sub3, high_between_artic_node1)
+removal_sub4 <- delete_vertices(sub4, high_between_artic_node1)
+removal_sub5 <- delete_vertices(sub5, high_between_artic_node1)
+```
+
+```{r}
+removal_results <- data.frame()
+removal_subs <- list(sub1, removal_sub1, sub2, removal_sub2, sub3, removal_sub3, sub4, removal_sub4, sub5, removal_sub5)
+sub_names <- c("Hub 1", "Removal Hub 1", "Hub 2","Removal Hub 2", "Hub 3","Removal Hub 3", "Hub 4", "Removal Hub 4", "Hub 5", "Removal Hub 5")
+
+for(i in 1:length(removal_subs)){
+  g <- removal_subs[[i]]
+  
+  # Community Detection
+  cw <- cluster_walktrap(g)
+  
+  # Build row
+  row <- data.frame(
+    Name = sub_names[i],
+    Nodes = vcount(g),
+    Edges = ecount(g),
+    Num_Comp = components(g)$no,
+    Num_Disconnected_Pairs = distance_table(g,  directed = FALSE)$unconnected,
+    Largest_Comp = max(components(g)$csize),
+    Transitivity = round(transitivity(g),4),
+    Diameter = diameter(g),
+    Btwn_Centrality = round(centr_betw(g, directed = F)$centralization,4),
+    Close_Centrality = round(centr_clo(g)$centralization,4),
+    Modularity_Walk = round(modularity(cw),4),
+    Num_Communities_Walk = length(unique(membership(cw)))
+  )
+  removal_results <- rbind(removal_results, row)
+}
+
+removal_results$Pctg_Disconnected_Pairs <- round(removal_results$Num_Disconnected_Pairs /
+          (removal_results$Nodes * (removal_results$Nodes - 1) / 2) * 100, 4)
+```
+
+```{r}
+t(removal_results) %>%
+  kable() %>%
+  kable_styling(bootstrap_options = "striped") %>%
+  column_spec(c(2,3), background = "#FFE4E1") %>%  # Hub 1
+  column_spec(c(4,5), background = "#E1F5E1") %>%  # Hub 2
+  column_spec(c(6,7), background = "#E1E8FF") %>%  # Hub 3
+  column_spec(c(8,9), background = "#FFF8E1") %>%  # Hub 4
+  column_spec(c(10,11), background = "#F3E1FF")
+```
+
+### Mectrics Comparison and Interpretation
+
+**One paragraph to summarize the differences** result:
+
+the number of connected components stay the same for sub3 and sub5, it is likely that these two networks is more like a town that does not need highway or bridge connections between regions/districts. For removal_sub1, 2, 4 which has `NaN` closeness centrality centralization value indicates that there are isolated nodes with no connections. Number of communities drop after removal of high betweenness articulation node
+
+Those top 5 articulation points were major highway junctions or interchange nodes that connected otherwise distinct geographic regions Their high betweenness means most cross-region traffic flowed through them Community detection interpreted these bridge nodes as boundaries, creating more communities After removal, the algorithm no longer sees those artificial boundaries, so neighboring regions consolidate
