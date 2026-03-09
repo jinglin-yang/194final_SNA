@@ -3,12 +3,13 @@ title: "194CS - PA Road Network Analysis"
 author: 'Brandon Wong II, '
 date: "2026-03-05"
 output:
+  pdf_document: default
   html_document:
     df_print: paged
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
 library(igraph)
 library(Matrix)
 library(dplyr)
@@ -16,7 +17,7 @@ library(dplyr)
 
 # Introduction
 
-In this study, we are using the roadNet-PA dataset. It is a large road network from the Standord Network Analysis Project. It represents the road infrastructure of Pennsylvania as a graph. In this network, nodes represent road intersections, or endpoints, and edges represent road segments connecting those intersections. The dataset contains about 1.09 million nodes and 1.5 million edges, making it a large-scale real-world network, commonly used for studying network structure, connectivity, and resilience. Because it models an actual road system, it is useful for us to analyze how transportation networks respond to random failures and disruptions. Furthermore, by analyzing cluseters presenting in the graph, we can indicate the transportation hubs and metropolitan areas that serves as critical intersections.
+In this study, we are using the roadNet-PA dataset. It is a large road network from the Standord Network Analysis Project. It represents the road infrastructure of Pennsylvania as a graph. In this network, nodes represent road intersections, or endpoints, and edges represent road segments connecting those intersections. THe dataset contains about 1.09 million nodes and 1.5 million edges, making it a large-scale real-world network, commonly used for studying network structure, connectivity, and resilience. Because it models an actual road system, it is useful for us to analyze how transportation networks respond to random failures and disruptions. Furthermore, by analyzing cluseters presenting in the graph, we can indicate the transportation hubs and metropolitan areas that serves as critical intersections.
 
 Objectives of the analysis.
 
@@ -154,7 +155,7 @@ def_marg <- c(5.1, 4.1, 4.1, 2.1)
 no_marg  <- c(0, 0, 0, 0)
 
 pa_road_edges <- read.table(
-  "roadNet-PA.txt",
+  "~/Desktop/194final_SNA/roadNet-PA.txt",
   comment.char = "#",
   col.names = c("from", "to")
 )
@@ -253,7 +254,6 @@ print(results_hub)
 
 ### Mectrics Interpretation
 
-**1-2 Paragraph**
 -   Node: the road intersection in PA.
 
 -   Edge: road segment directly connecting two nodes/ intersections. Like the road connecting node A and node B where it typical records as two edges between two nodes. But, we just directly record one edge between them, applying simplify function.
@@ -264,13 +264,11 @@ print(results_hub)
 
     -   Hub 4 has the lowest (2.53) suggesting more dead ends and T-junctions.
 
--   Transitivity:
+-   Transitivity: If intersection A connects to B, and B connects to C, how likely does C also connect back to A forming a road loop or city block.
 
-    -   **In road context:** If intersection A connects to B, and B connects to C, how likely does C also connect back to A forming a road loop or city block.
+    -   Looking through hub1 to hub5, we find that all hubs show very low transitivity between **0.045 and 0.071**, meaning only 4-7% of possible road triangles actually exist. Hub 4 has the highest (0.071) suggesting more city-block style loops, while Hub 5 has the lowest (0.045) suggesting mostly straight linear roads.
 
-    -   **Interpretation:**
-
-        > Looking through hub1 to hub5, we find that all hubs show very low transitivity between **0.045 and 0.071**, meaning only 4-7% of possible road triangles actually exist. Hub 4 has the highest (0.071) suggesting more city-block style loops, while Hub 5 has the lowest (0.045) suggesting mostly straight linear roads.
+<!-- -->
 
 -   Density:
 
@@ -280,11 +278,11 @@ print(results_hub)
 
         > All hubs have extremely low density between **0.0016 and 0.0049**, meaning less than 0.5% of all possible road connections exist. Hub 3 is densest (0.0049) despite being the smallest, suggesting a compact well-connected neighborhood. Hub 2 is least dense (0.0016) despite having the most nodes — suggesting a large spread-out suburban area where intersections are far apart.
 
--   Close_Centrality: How few road segments an intersection needs to travel through to reach any other intersection in the neighborhood. Higher closeness means better **traffic flow and accessibility** throughout the area.
+-   Closeness Centrality: How few road segments an intersection needs to travel through to reach any other intersection in the neighborhood. Higher closeness means better **traffic flow and accessibility** throughout the area.
 
     -   **Interpretation:** Take hub3 as an example.It has the lowest closeness (0.050). It means drivers need **more turns and road segments** to reach distant intersections.
 
--   Btwn_Centrality: How many driver routes must pass through a given intersection — identifying bottleneck intersections critical to traffic flow. High betweenness hubs are most **vulnerable to traffic disruption** if key intersections are closed or damaged.
+-   Betweenness Centrality: How many driver routes must pass through a given intersection — identifying bottleneck intersections critical to traffic flow. High betweenness hubs are most **vulnerable to traffic disruption** if key intersections are closed or damaged.
 
     -   **Interpretation:** Hub 3 has the lowest betweenness (0.188) suggesting more **alternative routes exist** — drivers have more flexibility to avoid any single intersection.
 
@@ -292,7 +290,7 @@ print(results_hub)
 
     -   **Interpretation:** All hubs show extremely high modularity between **0.80 and 0.90**. This confirms Pennsylvania roads naturally form **tight geographic clusters** with few cross-neighborhood connections.
 
-    -    Fast Greedy consistently finds fewer communities (16-31) than Walktrap (27-112), but both agree on strong community structure. Hub 2 has the most communities (112 by Walktrap) reflecting its large size and many disconnected sub-neighborhoods, while Hub 3 has the fewest (27) reflecting its compact connected structure.
+    -   Fast Greedy consistently finds fewer communities (16-31) than Walktrap (27-112), but both agree on strong community structure. Hub 2 has the most communities (112 by Walktrap) reflecting its large size and many disconnected sub-neighborhoods, while Hub 3 has the fewest (27) reflecting its compact connected structure.
 
 ## Community Detection (subnetwork 1)
 
@@ -353,13 +351,13 @@ for(i in 2:3) {
 
 ### Subgraph Interpretation
 
-Walktrap produces more smaller and fragmented communities, which is visible from the small isolated colored clusters near the red boundaries, reflecting its sensitivity to local structure through short random walks. The small communities detected are likely to be neighborhoods or blocks that are closely connected by local streets rather than major roadways connecting different part of the town.
+Walktrap produces more smaller and fragmented communities, which is visible from the small isolated colored clusters, reflecting its sensitivity to local structure through short random walks. The small communities detected are likely to be neighborhoods or blocks that are closely connected by local streets rather than major roadways connecting different part of the town.
 
 In contrast, Fast Greedy produces fewer, larger, and more cohesive communities, which is consistent with its global modularity optimization that tends to miss small communities and merge those communities into larger ones. The larger communities detected are more widespread than those in walktrap and thus likely to be larger districts or regions of the town/city that includes multiple neighborhoods or blocks, and these communities are likely connected by major roadway in the town with high betweenness centrality.
 
 ## Adjacency Matrix Reodering (subnetwork 1)
 
-```{r adj-mat-reorder, cache = TRUE}
+```{r adj-mat-reorder, cache = TRUE, fig.height=3,fig.width=3}
 # Original (unordered) adjacency matrix
 cw  <- cluster_walktrap(subgraph_list_hub[[1]])
 cfg <- cluster_fast_greedy(subgraph_list_hub[[1]])
@@ -386,7 +384,7 @@ image(A_reordered1,
 
 ### Adjacency Matrix Intepretation
 
-**Intepret adjacency matrix for one paragraph**
+**As we can see above, the adjency matrix with original node order appears to have a diagonal pattern already, and this is due to how we subsample our graph using neighborhood(). Since all the interesctions are collected sequentially as the neighbors to the starting node, all neighboring intersections tend to thave the similar indexes, causing all neighboring intersection to cluster along the diagonal. However, there are a considerable amount of connections spreading away the diagonal. After reordering, the diagonal trend appears as expected but there are very few sparse connections outside of the diagonal, indicating that the community detection algorithms tightly cluster intersections within the same community.**
 
 ## Resilience Analysis
 
@@ -394,7 +392,7 @@ image(A_reordered1,
 
 The objective of this analysis is to test the resilience of the road network within each 'town' by systematically removing the five nodes with the highest betweenness centrality that are also articulation points. Articulation points are intersections whose removal would disconnect the town into separate regions without any connections. Betweenness centrality measures how frequently a intersection lies on the shortest path from place to place, meaning high betweenness articulation nodes act as critical bridges or bottlenecks in the road network.
 
-That being said, we want to examine the impact of removing those intersection on the traffic system, reflecting how resilience the traffic system is without some crucial intersections. By removing the 5 most critical intersections, we simulate targeted attack scenarios such as road closures, infrastructure failures, or disaster damage at the most vulnerable intersections in the road network. The goal is to observe how the network's connectivity and structure degrade under such disruptions, specifically examining whether the town fragments into isolated regions, how many intersections become unreachable, and how overall connectivity metrics change after each removal. This provides insight into the town's infrastructural vulnerability and helps identify which intersections are most critical to maintain for ensuring a connected and functional road network.
+That being said, we want to examine the impact of removing those intersection on the traffic system, reflecting how resilience the traffic system is without some crucial intersections. By removing the 5 most critical intersections, we simulate targeted scenarios such as road closures, infrastructure failures, or disaster damage at intersections with the most traffic flow in the road network. The goal is to observe how the town's connectivity and structure degrade under such disruptions, specifically examining whether the town fragments into isolated regions, are there any unreachable intersections, and how overall connectivity metrics change after each removal. This provides insight into the town's infrastructural vulnerability and helps identify which intersections are most critical to maintain for ensuring a connected and functional road network.
 
 ```{r}
 # This chunk gives us the articulation points for each subnetwork, and the betweenness centrality of all articulation points within each subnetwork. And I store the top 5 highest centrality articulation nodes to be removed
@@ -504,8 +502,12 @@ t(removal_results) %>%
 
 ### Mectrics Comparison and Interpretation
 
-**One paragraph to summarize the differences** result:
+Analysis:
 
-the number of connected components stay the same for sub3 and sub5, it is likely that these two networks is more like a town that does not need highway or bridge connections between regions/districts. For removal_sub1, 2, 4 which has `NaN` closeness centrality centralization value indicates that there are isolated nodes with no connections. Number of communities drop after removal of high betweenness articulation node
+Removing the 5 major intersection with the heaviest traffic flow has measurable but relatively moderate impact on the traffic system within each hub. Connectivity between different neighborhoods/districts is disrupted that in hub 1, 2, and 4, towns are divided into 2 or 3 components without any connecting roads, in which residents in these towns cannot longer have access to all parts of the town due to loss of major roadways. In addition, the number of disconnected intersection pairs rise significantly, meaning that residents can no longer commute freely from place to place, as well as the percentage of disconnected intersections within hub1, 2, and 4. The longest shortest path (diameter) increases slightly, and on average, people need to go through more intersections. Another notable thing is the closeness centrality of hub 1, 2, and 4 are `NA`, which indicates that there are isolated intersections in the network that has zero connecting path as the closeness centrality cannot be calculated if the network is fragmented. Transitivity remains stable as those disconnected intersections are not taken into account.
 
-Those top 5 articulation points were major highway junctions or interchange nodes that connected otherwise distinct geographic regions Their high betweenness means most cross-region traffic flowed through them Community detection interpreted these bridge nodes as boundaries, creating more communities After removal, the algorithm no longer sees those artificial boundaries, so neighboring regions consolidate
+In terms of the community structure, after removal, the modularity for all hubs stay stable but the algorithm struggles to detect community for hub 1, 2, and 3 that less neighborhoods are recognized. Rather, multiple neighborhoods/blocks are probably merged into larger communities. This might due to those 5 major intersections serve as the boundaries between neighborhoods and/or communities, and shutting them down would blur the boundaries between neighborhoods, and the algorithm would consolidate nearby communities as a one big communities instead of separate neighborhoods/blocks. However, for hub 4 and 5, more neighborhoods/blocks are detected
+
+Result:
+
+Overall, all 5 hubs demonstrate good resilience when major intersections are shut down. However, hub1, 2, and 4 are more vulnerable as removing the 5 intersections with the most traffic and would segment the town into segregated regions. The fragmentation would lead to serious real-world concerns if emergency situation happens, residents and emergency vehicles cannot reach other parts of the town with no alternative route. The traffic system of Hub 1, 2, and 4 would experience relatively significant interruption since the connectivity and the reachbility are both negatively impacted. Commute cost is likely increasing as people might need to choose another route with probably longer commute time and more usage of the gas.
