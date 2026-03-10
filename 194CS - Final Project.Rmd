@@ -19,7 +19,7 @@ def_marg <- c(5.1, 4.1, 4.1, 2.1)
 no_marg  <- c(0, 0, 0, 0)
 
 pa_road_edges <- read.table(
-  "roadNet-PA.txt",
+  "~/Desktop/194final_SNA/roadNet-PA.txt",
   comment.char = "#",
   col.names = c("from", "to")
 )
@@ -32,23 +32,23 @@ simple_pa_road <- igraph::simplify(pa_road_network)
 
 # Introduction
 
-The roadNet-PA dataset found on Stanford's Network Analysis Project, or SNAP for short, is the subject of our analysis. This dataset represents the Pennsylvania road infrastructure as an undirected graph network where **nodes** (or vertices) are intersections or endpoints (dead-ends / cul-de-sacs) and **edges** are the roads that connect them. The network has rough 1.9 million nodes and 1.5 million edges which makes it a relatively comprehensive model of a real-world transportation system. 
+The roadNet-PA dataset found on Stanford's Network Analysis Project, or SNAP for short, is the subject of our analysis. This dataset represents the Pennsylvania road infrastructure as an undirected graph network where **nodes** (or vertices) are intersections or endpoints (dead-ends / cul-de-sacs) and **edges** are the roads that connect them. The network has rough 1.9 million nodes and 1.5 million edges which makes it a relatively comprehensive model of a real-world transportation system.
 
 Our analysis has two primary objectives:
 
-- "Town" Detection: Can we find distinct Functional Neighborhoods or "Towns" within major hubs using community detection algorithms?
+-   "Town" Detection: Can we find distinct Functional Neighborhoods or "Towns" within major hubs using community detection algorithms?
 
-- "Town" Connectivity & Resilience: How does the removal of high-betweenness articulation points impact the structural resilience of these "Towns"? In other words, is Pennsylvania's road infrastructure susceptible to major intersection closures or does it offer alternate paths for traversing the network?
+-   "Town" Connectivity & Resilience: How does the removal of high-betweenness articulation points impact the structural resilience of these "Towns"? In other words, is Pennsylvania's road infrastructure susceptible to major intersection closures or does it offer alternate paths for traversing the network?
 
 # Methodology
 
 ### Data Processing
 
-We imported the data using `read.table` and then called `graph_from_data_frame` to convert our dataset into an actual graph object. Upon running this, we noticed that we have a graph object with 1088092 nodes and 3083796 edges, which is exactly double the number of edges we should have in our network. What happened here, is that our .txt file represents an undirected edge by listing it twice, i.e A -> B and B -> A, meaning when we call our graph_from_data_frame function, it treats these as two separate edges between the two nodes and thus we get double the edges we should. To fix this, we called the simplify function on our imported network, which removes duplicate edges and self-loops, leaving us with the correct number of nodes and edges in our network.
+We imported the data using `read.table` and then called `graph_from_data_frame` to convert our dataset into an actual graph object. Upon running this, we noticed that we have a graph object with 1088092 nodes and 3083796 edges, which is exactly double the number of edges we should have in our network. What happened here, is that our .txt file represents an undirected edge by listing it twice, i.e A -\> B and B -\> A, meaning when we call our graph_from_data_frame function, it treats these as two separate edges between the two nodes and thus we get double the edges we should. To fix this, we called the simplify function on our imported network, which removes duplicate edges and self-loops, leaving us with the correct number of nodes and edges in our network.
 
 ### Subgraph Generation
 
-Due to how computationally expensive it is to visualize and analyze 1 million+ nodes, we needed to come up with a way to generate subgraphs. The sampling method we employed involves iteratively building out a neighborhood at an order of 15 steps from a high-degree node and then removing these used nodes for the next iteration. The idea behind our subgraph generation method is to mimic selecting urban centers and their surrounding areas. By iteratively choosing the highest-degree node of the network as the start node we build out neighborhoods which effectively gives us subgraphs representing 5 different urban centers of PA's road network. 
+Due to how computationally expensive it is to visualize and analyze 1 million+ nodes, we needed to come up with a way to generate subgraphs. The sampling method we employed involves iteratively building out a neighborhood at an order of 15 steps from a high-degree node and then removing these used nodes for the next iteration. The idea behind our subgraph generation method is to mimic selecting urban centers and their surrounding areas. By iteratively choosing the highest-degree node of the network as the start node we build out neighborhoods which effectively gives us subgraphs representing 5 different urban centers of PA's road network.
 
 ### Community Detection Algorithms
 
@@ -58,12 +58,9 @@ The **Walktrap** uses the idea of random walks to identify densely connected "to
 
 The **Fast Greedy** algorithm tries to maximize Modularity. It starts by treating each intersection as its own separate community, then greedily merges other communities that yield the largest increase in modularity. Making this algorithm good for looking at the global structure of the network and computationally quick. The downside to this algorithm is that it tends to miss smaller neighborhoods since it focuses on maximizing modularity.
 
-
 # Analysis and Results
 
 ### Description and Visualization of Subgraphs
-
-To visualize our subgraphs, we used the igraph plot function with the layout function of layout_nicely. The Layout_nicely function chooses automatically the most appropriate layout algorithm for the graph. The reason for only choosing this layout, is that other layout algorithms are unideal for visualizing road networks, for example, layout_on_grid or layout_in_circle plot the nodes as described, which for a road network, doesn't make sense for intersections to be in a circle or on a uniform grid as this is not how a road network would look in reality. As such we use layout_nicely to plot our network since it automatically selects the most optimal layout for our subnetworks. 
 
 ```{r hub-generation, cache = TRUE, echo = FALSE}
 set.seed(2249282)
@@ -108,11 +105,11 @@ for (i in 1:num_subgraphs) {
 }
 ```
 
-Above we can see the generated subgraphs. These subgraphs offer us a look into the topological structure of Pennsylvania's Road Network. Since these were built-out using the ego() function and high-degree nodes as the origin, each of these subgraphs serve to represent a major region in Pennsylvania. 
+Above we can see the generated subgraphs. These subgraphs offer us a look into the topological structure of Pennsylvania's Road Network. Since these were built-out using the ego() function and high-degree nodes as the origin, each of these subgraphs serve to represent a major region in Pennsylvania.
 
 Hubs 1 and 2 we can see long-sweeping edges that bypass local clusters of intersections. This suggests that our high-degree nodes used to generate these subgraphs are located near major highways, where these highways connect the local intersection clusters. Hubs 3 and 5 are characterized by their dense, grid-like structure. These are likely major metropolitan areas of Pennsylvania where the grid-like structure represents the urban planning, where there is multiple routes existing between 2 points. Hub 4 is the most unique out of the 5 subnetworks. We can see a clear central core with "arms" that branch out from it. These "arms" are not connected to each other and only connected through the central core, meaning if you removed the node connecting the core to this arm, then this arm would be completely isolated from the network. This shows to us how central town or city acts as the connection to smaller towns or rural roads.
 
-Overall, these hubs reveal various different topological structures of Pennsylvanis Road Network. Revealing why we chose to build out networks from high-degree nodes. 
+Overall, these hubs reveal various different topological structures of Pennsylvanis Road Network. Revealing why we chose to build out networks from high-degree nodes.
 
 ### Network Metrics
 
@@ -139,36 +136,28 @@ for(i in 1:length(subgraph_list_hub)){
   results_hub <- rbind(results_hub, row)
 }
 
-kable(t(results_hub))
+kable(t(results_hub), caption = "Hub Mectrics")
 ```
 
-To get a better understanding of each of the subgraphs, we calculated various metrics and put them into the table above. 
+To get a better understanding of each of the subgraphs, we calculated various metrics and put them into the table above.
 
+The next metric we looked at is the **Average Degree**, which is the average number of edges connected to a node. In terms of road network analysis, it is the average number of roads connecting to each intersection in PA. The average degree across each Hub seems to be roughly around 3 with some being slightly more and some slightly less. This means that our network is relatively well connected implying these road networks offer efficient means of travel.
 
-The next metric we looked at is the **Average Degree**, which is the average number of edges connected to a node. In terms of road network analysis, it is the average number of roads connecting to each intersection in PA. The average degree across each Hub seems to be roughly around 3 with some being slightly more and some slightly less. This means that our network is relatively well connected implying these road networks offer efficient means of travel. 
+We also looked at **Transitivity** which measures the tendency for connected nodes in a graph to form tightly knit groups. **Transitivity**: **In road context:** If intersection A connects to B, and B connects to C, how likely does C also connect back to A forming a road loop or city block.
 
-We also looked at **Transitivity** which measures the tendency for connected nodes in a graph to form tightly knit groups. 
-**Transitivity**:
-**In road context:** If intersection A connects to B, and B connects to C, how likely does C also connect back to A forming a road loop or city block.
+**Interpretation:** Looking through hub1 to hub5, we find that all hubs show very low transitivity between **0.045 and 0.071**, meaning only 4-7% of possible road triangles actually exist. Hub 4 has the highest (0.071) suggesting more city-block style loops, while Hub 5 has the lowest (0.045) suggesting mostly straight linear roads.
 
-**Interpretation:**
-Looking through hub1 to hub5, we find that all hubs show very low transitivity between **0.045 and 0.071**, meaning only 4-7% of possible road triangles actually exist. Hub 4 has the highest (0.071) suggesting more city-block style loops, while Hub 5 has the lowest (0.045) suggesting mostly straight linear roads.
+**Density**: *In road context:* Out of every possible road that could connect any two intersections, what fraction actually exists.
 
-**Density**:
-*In road context:* Out of every possible road that could connect any two intersections, what fraction actually exists.
+*Interpretation:* \> All hubs have extremely low density between **0.0016 and 0.0049**, meaning less than 0.5% of all possible road connections exist. Hub 3 is densest (0.0049) despite being the smallest, suggesting a compact well-connected neighborhood. Hub 2 is least dense (0.0016) despite having the most nodes — suggesting a large spread-out suburban area where intersections are far apart.
 
-*Interpretation:* > All hubs have extremely low density between **0.0016 and 0.0049**, meaning less than 0.5% of all possible road connections exist. Hub 3 is densest (0.0049) despite being the smallest, suggesting a compact well-connected neighborhood. Hub 2 is least dense (0.0016) despite having the most nodes — suggesting a large spread-out suburban area where intersections are far apart.
+**Close_Centrality**: How few road segments an intersection needs to travel through to reach any other intersection in the neighborhood. Higher closeness means better **traffic flow and accessibility** throughout the area. - *Interpretation:* Take hub3 as an example.It has the lowest closeness (0.050). It means drivers need **more turns and road segments** to reach distant intersections.
 
-**Close_Centrality**: How few road segments an intersection needs to travel through to reach any other intersection in the neighborhood. Higher closeness means better **traffic flow and accessibility** throughout the area.
-- *Interpretation:* Take hub3 as an example.It has the lowest closeness (0.050). It means drivers need **more turns and road segments** to reach distant intersections.
+**Btwn_Centrality**: How many driver routes must pass through a given intersection — identifying bottleneck intersections critical to traffic flow. High betweenness hubs are most **vulnerable to traffic disruption** if key intersections are closed or damaged. *Interpretation:* Hub 3 has the lowest betweenness (0.188) suggesting more **alternative routes exist** — drivers have more flexibility to avoid any single intersection.
 
-**Btwn_Centrality**: How many driver routes must pass through a given intersection — identifying bottleneck intersections critical to traffic flow. High betweenness hubs are most **vulnerable to traffic disruption** if key intersections are closed or damaged.
-*Interpretation:* Hub 3 has the lowest betweenness (0.188) suggesting more **alternative routes exist** — drivers have more flexibility to avoid any single intersection.
+### Community Detection Results
 
-
-### Community Detection Results 
-
-```{r community-detection-visualization, cache = TRUE, echo = FALSE}
+```{r community-detection-visualization, cache = TRUE, echo = FALSE, fig.width=4, fig.height=3, fig.align='center'}
 all_colors <- colors()
 vibrant_colors <- all_colors[!grepl("gray|grey", all_colors)]
 unique_palette <- sample(vibrant_colors)
@@ -237,7 +226,7 @@ for(i in 1:length(subgraph_list_hub)){
   results_com <- rbind(results_com, row)
 }
 
-kable(t(results_com))
+kable(t(results_com),caption = "Community Detection on Hub 2 and 3")
 ```
 
 **Modularity & Communities**: How strongly Pennsylvania roads cluster into distinct local neighborhoods with few roads connecting between them.
@@ -252,14 +241,17 @@ In contrast, Fast Greedy produces fewer, larger, and more cohesive communities, 
 
 ### Adjacency Matrix Reordering
 
-```{r adj-mat-reorder, cache = TRUE, echo = FALSE, fig.height=3,fig.width=3}
+```{r adj-mat-reorder, cache = TRUE, echo = FALSE, fig.align='center',fig.width=6, fig.height=3, fig.show='hold'}
 cw <- cluster_walktrap(subgraph_list_hub[[1]])
 cfg <- cluster_fast_greedy(subgraph_list_hub[[1]])
+par(mfrow = c(1,2), mar=c(3,3,2,1))
 
 # Original (unordered) adjacency matrix
 A <- as_adjacency_matrix(subgraph_list_hub[[1]], sparse = TRUE)
 image(A, main = "Original Order", col.region = c("red"),
       xlab = "Node", ylab = "Node")
+
+
 
 # Reorder by Walktrap community membership
 ord <- order(cw$membership)
@@ -269,9 +261,14 @@ image(A_reordered,
       main = "Walktrap", col.region = c("red"),
       xlab = "Node (reordered)", ylab = "Node (reordered)")
 ```
+
 As we can see above, the adjaency matrix with original node order appears to have a diagonal pattern already, and this is due to how we subsample our graph using neighborhood(). All the intersections are collected sequentially as the neighbors to the starting node, and thus all neighboring intersections tend to have similar indexes, causing those to cluster along the diagonal. However, there are a considerable amount of connections spreading away the diagonal. After reordering, the diagonal trend appears as expected but there are very few sparse connections outside of the diagonal, indicating that the community detection algorithms tightly cluster intersections within the same community.
 
 ### Resilience Analysis and Results
+
+We simulate targeted scenarios such as road closures, infrastructure failures, or disaster damage at intersections with the most traffic flow in the road network. The goal is to observe how the town's connectivity and structure degrade under such disruptions, specifically examining whether the town fragments into isolated regions, are there any unreachable intersections, and how overall connectivity metrics change after each removal. This provides insight into the town's infrastructural vulnerability and helps identify which intersections are most critical to maintain for ensuring a functional road network.
+
+Removing high betweenness articulation intersection is impactful because these intersection serve as connectors whose removal disconnects the network and as major traffic bottlenecks through which the most shortest paths flow. Their failure may cause fragmentation and disruption to the reachability of road network.
 
 ```{r, echo = FALSE}
 sub1 <- subgraph_list_hub[[1]]
@@ -300,12 +297,7 @@ artic_points5 <- articulation_points(sub5)
 # cat("Number of articulation points for hub 5:", length(artic_points5), '\n')
 betweenness_sub5 <- betweenness(sub5, v = artic_points5, directed = FALSE)
 high_between_artic_node5 <- sort(betweenness_sub5, decreasing = T, index.return = T)$ix[1:5]
-
-# table includes name of hub and number of arrticulation point
-artic_df <- tibble(Name=c("Hub 1", "Hub 2", "Hub 3", "Hub 4", "Hub 5"), `Articulation Points`=as.numeric(c(length(artic_points1), length(artic_points2), length(artic_points3), length(artic_points4), length(artic_points5))))
-kable(t(artic_df), col.names = NULL, caption = "Number of Articulation points for each hub")
 ```
-
 
 ```{r, echo = FALSE, warning=FALSE}
 # Removing High-Betweenness Articulation Points
@@ -342,7 +334,7 @@ for(i in 1:length(removal_subs)){
 
 removal_results %>%
   kable() %>%
-  kable_styling(bootstrap_options = "striped") %>%
+  kable_styling(bootstrap_options = "striped", font_size = 8) %>%
   row_spec(c(1,2), background = "#FFE4E1") %>%  # Hub 1
   row_spec(c(3,4), background = "#E1F5E1") %>%  # Hub 2
   row_spec(c(5,6), background = "#E1E8FF") %>%  # Hub 3
@@ -350,25 +342,30 @@ removal_results %>%
   row_spec(c(9,10), background = "#F3E1FF")
 ```
 
-Removing high betweenness articulation node is particularly impactful because these nodes simultaneously serve as connectors that removal disconnects the network and as major traffic bottlenecks through which the most shortest paths flow. Their failure causes both structural fragmentation and disruption to the overall reachability of the road network because people need to find another route to commute from place to place with higher commute cost, such as longer commute time and increase in gas usage.
+#### Choosing optimal number of removed High-Betweenness Articulation Points
 
-We simulate targeted scenarios such as road closures, infrastructure failures, or disaster damage at intersections with the most traffic flow in the road network. The goal is to observe how the town's connectivity and structure degrade under such disruptions, specifically examining whether the town fragments into isolated regions, are there any unreachable intersections, and how overall connectivity metrics change after each removal. This provides insight into the town's infrastructural vulnerability and helps identify which intersections are most critical to maintain for ensuring a connected and functional road network.
+Selecting appropriate number of intersection removals is also important, because we want a reasonable numbers to simulate the real-world scenarios of road closures and significant enough to observe the disruption on the traffic system. Removing one intersection might not stress the traffic system but removing ten are not as common in the real world that rarely this many intersections would be shut down simultaneously.
 
-Removing the 5 major intersections with the heaviest traffic flow has a measurable but relatively moderate impact on the traffic system within each hub. Connectivity between neighborhoods/districts is disrupted, so in hubs 1, 2, and 4, towns are divided into 2 or 3 components, with no connecting roads, leaving residents unable to access all parts of their towns due to the loss of major roadways. In addition, the number of disconnected intersection pairs rises significantly, meaning that residents can no longer commute freely from place to place, as well as the percentage of disconnected intersections within hub1, 2, and 4. The longest shortest path (diameter) increases slightly, and on average, people need to go through more intersections. Another notable feature is the closeness centrality of hubs 1, 2, and 4: they are `NA`, indicating isolated intersections in the network with zero connecting paths, as closeness centrality cannot be calculated when the network is fragmented. Transitivity remains stable as those disconnected intersections are not taken into account.
+#### Mectrics Analysis
+
+The removal has a measurable but relatively moderate impact on the traffic system within each hub. Connectivity between neighborhoods/districts is disrupted, so in hubs 1, 2, and 4, towns are divided into 2 or 3 components, with no connecting roads, leaving residents unable to access all parts of their towns due to the loss of major roadways. In addition, the number of disconnected intersection pairs rises significantly, meaning that residents can no longer commute freely from place to place, as well as the percentage of disconnected intersections within hub1, 2, and 4. The longest shortest path (diameter) increases slightly, and on average, people need to go through more intersections. Another notable feature is the closeness centrality of hubs 1, 2, and 4: they are `NA`, indicating isolated intersections in the network with zero connecting paths, as closeness centrality cannot be calculated when the network is fragmented. Transitivity remains stable as those disconnected intersections are not taken into account.
 
 In terms of community structure, after removal, modularity for all hubs remains stable, but the algorithm struggles to detect communities for hubs 1, 2, and 3, where fewer neighborhoods are recognized. Rather, multiple neighborhoods/blocks are probably merged into larger communities. This might be because those 5 major intersections serve as boundaries between neighborhoods and/or communities, and shutting them down would blur those boundaries, leading the algorithm to consolidate nearby communities into a single large community rather than separate neighborhoods/blocks.
-
-### Choosing optimal number of removed High-Betweenness Articulation Points
-
-Selecting appropriate number of intersection removals is also important, because we want a reasonable numbers to simulate the real-world scenarios of road closures and significant enough to observe the disruption on the traffic system. Removing one intersection do not impose significant stress the traffic system but removing ten intersection are not as common in the real world that rarely this many intersections would be shut down at the same time.
 
 Overall, all 5 hubs demonstrate good resilience when major intersections are shut down. However, hubs 1, 2, and 4 are more vulnerable, as removing the 5 intersections with the most traffic would segment the town into segregated regions. The fragmentation would lead to serious real-world concerns if an emergency situation occurred: residents and emergency vehicles could not reach other parts of the town without an alternative route. The traffic system of Hubs 1, 2, and 4 would experience a relatively significant interruption, as connectivity and reachability are both negatively impacted. Commute costs are likely increasing as people may need to choose another route with a longer commute time and more gas.
 
 # Conclusion
 
-Summary of insights gained.
-Possible future directions for further analysis.
+Summary of insights gained. Possible future directions for further analysis.
 
+# Fix
+
+-   mectrics interpretation
+-   visualization layout explanation
+-   adjacency matrix analysis
+-   Conlcusion
+
+# Appendix
 
 # References
 
@@ -376,18 +373,15 @@ List of references and datasets used.
 
 “SNAP: Network Datasets: Pennsylvania Road Network.” Stanford.edu, 2026, snap.stanford.edu/data/roadNet-PA.html. Accessed 6 Mar. 2026.
 
-# Appendix
-
 ### Tools and Packages
 
 We used R and RStudio as our programming language and platform to perform our analysis.
 
-The packages we used were *igraph* for network manipulation, community detection, and metric calculations. *Matrix* to create the adjacency matrices.
-*dplyr* for data manipulation and cleaning and *kableExtra* for creating better tables.
+The packages we used were *igraph* for network manipulation, community detection, and metric calculations. *Matrix* to create the adjacency matrices. *dplyr* for data manipulation and cleaning and *kableExtra* for creating better tables.
 
 ### Code
 
-```{r data-processing}
+```{r data-processing, eval = F}
 # Data Processing 
 
 # Margin helpers
@@ -454,5 +448,3 @@ for(i in 1:length(subgraph_list_hub)) {
        main = paste("Hub", i, ": F&G"))
 }
 ```
-    
-
