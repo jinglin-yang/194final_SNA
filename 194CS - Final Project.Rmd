@@ -139,21 +139,21 @@ for(i in 1:length(subgraph_list_hub)){
 kable(t(results_hub), caption = "Hub Mectrics")
 ```
 
-To get a better understanding of each of the subgraphs, we calculated various metrics and put them into the table above.
+The nodes and edges describe the size of the network, where nodes are intersections/endpoints and edges are the road segments connecting them. Our hubs range from 666 to \~1400 nodes where Hub 1 is our largest urban center with 1415 nodes.
 
-The next metric we looked at is the **Average Degree**, which is the average number of edges connected to a node. In terms of road network analysis, it is the average number of roads connecting to each intersection in PA. The average degree across each Hub seems to be roughly around 3 with some being slightly more and some slightly less. This means that our network is relatively well connected implying these road networks offer efficient means of travel.
+The next metric we looked at is the **Average Degree**, which is the average number of edges connected to a node. However, unlike social networks where a person can have 500 friends (connections/edges), our road network is limited to 2d space, meaning the number of connections a node can have is restricted to the space it lies within. Due to this, the avg degree distribution from \~2.53 to \~3.28, makes a lot of sense. Hub 3 has an average degree of 3.28 which suggests more T-junctions or Crossroads, whereas an average degree of 2.53 for Hub 4 suggests that there are more dead-ends or long-stretches with little intersections.
 
-We also looked at **Transitivity** which measures the tendency for connected nodes in a graph to form tightly knit groups. **Transitivity**: **In road context:** If intersection A connects to B, and B connects to C, how likely does C also connect back to A forming a road loop or city block.
+Another metric we looked at **Transitivity** which is the probability that neighbors of a certain node are also connected to each other forming small triangles. The values we see in our road networks are really low, ranging from 0.05-0.07. While in social networks, transitivity is usually very high, for road networks, low transitivity actually indicates how efficient the road network is. Road networks operate on a 2d plane, unlike Social Networks multi-dimensional domain, meaning that if road networks were constructed with diagonal shortcuts connecting two node endpoints, then this would be incredibly expensive and hard to do in practice. As such, efficient road networks are generally organized in squares/rectangles, meaning that a standard city grid will have a transitivity of 0, despite being highly redundant and easy to traverse. With this in mind, Hub 5 has a transitivity value of 0.04, which suggests that this road network is a highly structured grid connected through square blocks rather than triangles. Hub 4 has the highest transitivity of 0.07 which suggests a more freeform road structure, which could be due to certain geographical features forcing roads to merge and indirectly creating "triangles" that our transitivity function picks up.
 
-**Interpretation:** Looking through hub1 to hub5, we find that all hubs show very low transitivity between **0.045 and 0.071**, meaning only 4-7% of possible road triangles actually exist. Hub 4 has the highest (0.071) suggesting more city-block style loops, while Hub 5 has the lowest (0.045) suggesting mostly straight linear roads.
+We also looked at **Density** which is the proportion of actual edges in the network to the total possible number of edges in the network if every node was connected to every other node. The density values we see range from \~0.00160 to \~0.00493, which are extremely low. This is to be expected, because in a road network, we cannot connect each intersection to every other intersection because roads cannot overlap infinitely. As such, the extremely low values we see here is expected due to physical restrictions of road networks. It is to be noted that Hub 3 has the highest density of 0.00493 which suggests this is the most compact and interconnected urban center.
 
-**Density**: *In road context:* Out of every possible road that could connect any two intersections, what fraction actually exists.
+CC or **Closeness Centrality** measures how close a node is to all other nodes in the network based on the shortest path distance. However, what we use is the **Closeness Centralization** which measures how much a single node is closer to other nodes than the average node. Hubs with high CC are generally very compact, having a clear central region from which you can reach any other region with few turns. The CC values we see across all hubs are very small, ranging from 0.05-0.07 implying that Pennsylvania's road hubs are decentralized, there isn't one intersection that allows access to all other intersections. This makes sense as states generally don't just have one centralized town that connects all others, but instead is a mix of smaller and larger towns that distributes the closeness measure across these local centers.
 
-*Interpretation:* \> All hubs have extremely low density between **0.0016 and 0.0049**, meaning less than 0.5% of all possible road connections exist. Hub 3 is densest (0.0049) despite being the smallest, suggesting a compact well-connected neighborhood. Hub 2 is least dense (0.0016) despite having the most nodes — suggesting a large spread-out suburban area where intersections are far apart.
+BC or **Betweenness Centrality** counts the number of times a node acts as a "bridge" along the shortest path between two other nodes whereas **Betweenness Centralization** measures how much the networks traffic flow is bottlenecked through a small number of nodes. This metric is crucial for our later resilience analysis, where if a High BC node is closed, it does not just affect traffic flow locally, but also globally (in the context of the hub), forcing traffic to use a longer, less efficient route. Hub 1 has the highest BC score of 0.4 which means to traverse across this network, traffic must go through a few specific intersections, making it vulnerable to single points of failures. Hub 3 has the lowest BC value of 0.19, which implies this Hub has a grid-like structure, where no single intersection controls the flow of traffic and instead offers various paths to get from point A to point B, making it more resilient to individual intersection closures.
 
-**Close_Centrality**: How few road segments an intersection needs to travel through to reach any other intersection in the neighborhood. Higher closeness means better **traffic flow and accessibility** throughout the area. - *Interpretation:* Take hub3 as an example.It has the lowest closeness (0.050). It means drivers need **more turns and road segments** to reach distant intersections.
+**Diameter** is the "longest-shortest path" between any two nodes in the network. This metric isn't all that interesting for interpretation as our diameter values are all 30, which is simply the result of generating our hubs using the ego() function at an order of 15 steps.
 
-**Btwn_Centrality**: How many driver routes must pass through a given intersection — identifying bottleneck intersections critical to traffic flow. High betweenness hubs are most **vulnerable to traffic disruption** if key intersections are closed or damaged. *Interpretation:* Hub 3 has the lowest betweenness (0.188) suggesting more **alternative routes exist** — drivers have more flexibility to avoid any single intersection.
+Artic_Pts or **Articulation Points** are the nodes where, if removed, would break the network into two or more disconnected pieces. Hub 2 has by far the most number of articulation points with 381, making it highly susceptible to road closures. Hub 3 has the least with 32, meaning that this Hub is much more robust than the rest, where if one intersection closes, a person can just use an alternate route to go around.
 
 ### Community Detection Results
 
@@ -357,13 +357,6 @@ Overall, all 5 hubs demonstrate good resilience when major intersections are shu
 # Conclusion
 
 Summary of insights gained. Possible future directions for further analysis.
-
-# Fix
-
--   mectrics interpretation
--   visualization layout explanation
--   adjacency matrix analysis
--   Conlcusion
 
 # Appendix
 
