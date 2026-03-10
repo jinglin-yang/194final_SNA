@@ -75,10 +75,6 @@ The **Walktrap** uses the idea of random walks to identify densely connected "to
 
 The **Fast Greedy** algorithm tries to maximize Modularity. It starts by treating each intersection as its own separate community, then greedily merges other communities that yield the largest increase in modularity. Making this algorithm good for looking at the global structure of the network and computationally quick. The downside to this algorithm is that it tends to miss smaller neighborhoods since it focuses on maximizing modularity.
 
-### Choosing optimal number of removed High-Betweenness Articulation Points
-
-Selecting appropriate number of intersection removals is also important, because we want a reasonable numbers to simulate the real-world scenarios of road closures and significant enough to observe the disruption on the traffic system. Removing one intersection do not impose significant stress the traffic system but removing ten intersection are not as common in the real world that rarely this many intersections would be shut down at the same time.
-
 # Analysis
 
 ### Description and Visualization of Subgraphs
@@ -279,6 +275,10 @@ As we can see above, the adjaency matrix with original node order appears to hav
 ### Resilience Analysis
 
 We simulate targeted scenarios such as road closures, infrastructure failures, or disaster damage at intersections with the most traffic flow in the road network. The goal is to observe how the town's connectivity and structure degrade under such disruptions, specifically examining whether the town fragments into isolated regions, are there any unreachable intersections, and how overall connectivity metrics change after each removal. This provides insight into the town's infrastructural vulnerability and helps identify which intersections are most critical to maintain for ensuring a connected and functional road network.
+
+### Choosing optimal number of removed High-Betweenness Articulation Points
+
+Selecting appropriate number of intersection removals is also important, because we want a reasonable numbers to simulate the real-world scenarios of road closures and significant enough to observe the disruption on the traffic system. Removing one intersection do not impose significant stress the traffic system but removing ten intersection are not as common in the real world that rarely this many intersections would be shut down at the same time.
 
 Removing the 5 major intersections with the heaviest traffic flow has a measurable but relatively moderate impact on the traffic system within each hub. Connectivity between neighborhoods/districts is disrupted, so in hubs 1, 2, and 4, towns are divided into 2 or 3 components, with no connecting roads, leaving residents unable to access all parts of their towns due to the loss of major roadways. In addition, the number of disconnected intersection pairs rises significantly, meaning that residents can no longer commute freely from place to place, as well as the percentage of disconnected intersections within hub1, 2, and 4. The longest shortest path (diameter) increases slightly, and on average, people need to go through more intersections. Another notable feature is the closeness centrality of hubs 1, 2, and 4: they are `NA`, indicating isolated intersections in the network with zero connecting paths, as closeness centrality cannot be calculated when the network is fragmented. Transitivity remains stable as those disconnected intersections are not taken into account.
 
