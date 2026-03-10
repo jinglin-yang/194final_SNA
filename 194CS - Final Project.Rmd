@@ -1,6 +1,6 @@
 ---
 title: "194CS - PA Road Network Analysis"
-author: "Brandon Wong II, "
+author: "Brandon Wong II, Mengchun Jiang, Jinglin Yang, Yijia Yuan"
 date: "2026-03-05"
 output: pdf_document
 ---
@@ -11,6 +11,8 @@ library(igraph)
 library(Matrix)
 library(dplyr)
 library(kableExtra)
+library(gridExtra)
+library(lattice)
 ```
 
 ```{r, , include=FALSE, echo = FALSE}
@@ -19,7 +21,7 @@ def_marg <- c(5.1, 4.1, 4.1, 2.1)
 no_marg  <- c(0, 0, 0, 0)
 
 pa_road_edges <- read.table(
-  "~/Desktop/194final_SNA/roadNet-PA.txt",
+  "roadNet-PA.txt",
   comment.char = "#",
   col.names = c("from", "to")
 )
@@ -52,9 +54,9 @@ Due to how computationally expensive it is to visualize and analyze 1 million+ n
 
 ### Community Detection Algorithms
 
-**Walktrap** and **Fast Greedy** are implemented on all 5 subnetworks to detect neighborhoods/blocks within each hub. Since they cluster the intersections with different mechanisms, we want to compare the performance of different algorithms and find the one that best fit out network with higher modularity.
+**Walktrap** and **Fast Greedy** are implemented on all 5 subnetworks to detect neighborhoods/blocks within each hub. Since they cluster the intersections with different mechanisms, we want to compare the performance of different algorithms and find the one that best fit our network with higher modularity.
 
-The **Walktrap** uses the idea of random walks to identify densely connected "towns" within a network. The intuition is that if you were to take a short random walk from a node (3-5 steps), then you are more likely to stay within the same "town" then jump to a different one. This makes the algorithm better at detecting smaller "towns" within a hub.
+The **Walktrap** uses the idea of random walks to identify densely connected "towns" within a network. The intuition is that if you were to take a short random walk from a node (3-5 steps), then you are more likely to stay within the same "town" then jump to a different one making this algorithm better at detecting smaller "towns" within a hub.
 
 The **Fast Greedy** algorithm tries to maximize Modularity. It starts by treating each intersection as its own separate community, then greedily merges other communities that yield the largest increase in modularity. Making this algorithm good for looking at the global structure of the network and computationally quick. The downside to this algorithm is that it tends to miss smaller neighborhoods since it focuses on maximizing modularity.
 
@@ -111,7 +113,7 @@ Hubs 1 and 2 we can see long-sweeping edges that bypass local clusters of inters
 
 Overall, these hubs reveal various different topological structures of Pennsylvanis Road Network. Revealing why we chose to build out networks from high-degree nodes.
 
-### Network Metrics
+### Subnetwork Metrics
 
 ```{r hub-results , cache = TRUE, echo = FALSE}
 results_hub <- data.frame()
@@ -155,7 +157,7 @@ BC or **Betweenness Centrality** counts the number of times a node acts as a "br
 
 Artic_Pts or **Articulation Points** are the nodes where, if removed, would break the network into two or more disconnected pieces. Hub 2 has by far the most number of articulation points with 381, making it highly susceptible to road closures. Hub 3 has the least with 32, meaning that this Hub is much more robust than the rest, where if one intersection closes, a person can just use an alternate route to go around.
 
-### Community Detection Results
+## Community Detection Results and Analysis
 
 ```{r community-detection-visualization, cache = TRUE, echo = FALSE, fig.width=4, fig.height=3, fig.align='center'}
 all_colors <- colors()
@@ -176,15 +178,12 @@ for(i in c(2,3)) {
   
   plot(cw, g,
        layout = layout_nicely,
-       vertex.size = 4,
+       vertex.size = 1,
        vertex.label = NA,
        vertex.color = v_colors_cw[membership(cw)],
-       vertex.frame.color = "gray40",
-       edge.color = "black",
+       edge.color = "grey95",
        edge.width = 0.5,
-       edge.curved = 0.3,
-       col = "grey95",      # hull color
-       border = "red",      # hull border
+       edge.curved = 0.3,   
        main = paste("Hub", i, ": Walktrap"))
 
   # Fast & Greedy
@@ -193,15 +192,12 @@ for(i in c(2,3)) {
   
   plot(cfg, g,
        layout = layout_nicely,
-       vertex.size = 4,
+       vertex.size = 1,
        vertex.label = NA,
        vertex.color = v_colors_cfg[membership(cfg)],
-       vertex.frame.color = "gray40",
-       edge.color = "black",
+       edge.color = "grey95",
        edge.width = 0.5,
        edge.curved = 0.3,
-       col = "grey95",
-       border = "blue",     # changed border color to distinguish
        main = paste("Hub", i, ": F&G"))
 }
 
@@ -226,14 +222,14 @@ for(i in 1:length(subgraph_list_hub)){
   results_com <- rbind(results_com, row)
 }
 
-kable(t(results_com),caption = "Community Detection on Hub 2 and 3")
+kable(t(results_com),caption = "Community Detection Results")
 ```
 
-**Modularity & Communities**: How strongly Pennsylvania roads cluster into distinct local neighborhoods with few roads connecting between them.
 
-*Interpretation:* All hubs show extremely high modularity between **0.80 and 0.90**. This confirms Pennsylvania roads naturally form **tight geographic clusters** with few cross-neighborhood connections.
 
-Fast Greedy consistently finds fewer communities (16-31) than Walktrap (27-112), but both agree on strong community structure. Hub 2 has the most communities (112 by Walktrap) reflecting its large size and many disconnected sub-neighborhoods, while Hub 3 has the fewest (27) reflecting its compact connected structure.
+Modularity measures how well partitions divide the network into communities. In general, a modularity score of greater than 0.3 indicates a meaningful community structure. Looking at our results, we can see that all hubs show extremely high modularity, ranging from **0.81 to 0.87** for the Walktrap algorithm and **0.82 to 0.90** for the Fast and Greedy algorithm. 
+
+Fast Greedy consistently finds fewer communities with a range of 16 communities in Hub 3 to 31 in Hub 2 whereas the Walktrap finds much more ranging from 27 communities in Hub 3 to 112 in Hub 2. The reason for this difference in number of communities detected is due to how each algorithm works. The Walktrap simulates random walks and due to this, it is good at identifying smaller communities, leading it to detect more communities than the Fast and Greedy approach which merges the nodes that result in the highest increase in modularity, leading it to detect less communities. Despite this disconnect, both algorithms agree on our Hubs having strong community structure. 
 
 Walktrap produces more smaller and fragmented communities, which is visible from the small isolated colored clusters near the red boundaries, reflecting its sensitivity to local structure through short random walks. The small communities detected are likely to be neighborhoods or blocks that are closely connected by local streets rather than major roadways connecting different part of the town.
 
@@ -241,15 +237,14 @@ In contrast, Fast Greedy produces fewer, larger, and more cohesive communities, 
 
 ### Adjacency Matrix Reordering
 
-```{r adj-mat-reorder, cache = TRUE, echo = FALSE, fig.align='center',fig.width=6, fig.height=3, fig.show='hold'}
+```{r adj-mat-reorder, cache = TRUE, echo = FALSE, fig.align='center',fig.width=4, fig.height=3}
 cw <- cluster_walktrap(subgraph_list_hub[[1]])
 cfg <- cluster_fast_greedy(subgraph_list_hub[[1]])
-par(mfrow = c(1,2), mar=c(3,3,2,1))
 
 # Original (unordered) adjacency matrix
 A <- as_adjacency_matrix(subgraph_list_hub[[1]], sparse = TRUE)
-image(A, main = "Original Order", col.region = c("red"),
-      xlab = "Node", ylab = "Node")
+p1 <- image(A, main = "Original Order", col.region = c("red"), cex = 0.8, scales = list(draw = FALSE),
+      xlab = "", ylab = "", sub = FALSE)
 
 
 
@@ -257,14 +252,26 @@ image(A, main = "Original Order", col.region = c("red"),
 ord <- order(cw$membership)
 A_reordered <- A[ord, ord]
 
-image(A_reordered,
-      main = "Walktrap", col.region = c("red"),
-      xlab = "Node (reordered)", ylab = "Node (reordered)")
+p2 <- image(A_reordered,
+      main = "Walktrap", col.region = c("red"), cex = 0.8, scales = list(draw = FALSE),
+      xlab = "", ylab = "", sub = FALSE)
+
+# Reorder by FG
+ord1 <- order(cfg$membership)
+A_reordered1 <- A[ord1, ord1]
+
+p3 <- image(A_reordered1,
+      main = "FG", col.region = c("red"), cex = 0.8, scales = list(draw = FALSE),
+      xlab = "", ylab = "", sub = FALSE)
+
+all_plots <- list(p1, p2, p3)
+
+do.call(grid.arrange, c(all_plots, ncol = 3))
 ```
 
-As we can see above, the adjaency matrix with original node order appears to have a diagonal pattern already, and this is due to how we subsample our graph using neighborhood(). All the intersections are collected sequentially as the neighbors to the starting node, and thus all neighboring intersections tend to have similar indexes, causing those to cluster along the diagonal. However, there are a considerable amount of connections spreading away the diagonal. After reordering, the diagonal trend appears as expected but there are very few sparse connections outside of the diagonal, indicating that the community detection algorithms tightly cluster intersections within the same community.
+As we can see above, the adjacency matrix with original node order appears to have a diagonal pattern already, and this is due to how we subsample our graph using neighborhood(). All the intersections are collected sequentially as the neighbors to the starting node, and thus all neighboring intersections tend to have similar indexes, causing those to cluster along the diagonal. However, there are a considerable amount of connections spreading away the diagonal. After reordering, the diagonal trend appears as expected but there are very few sparse connections outside of the diagonal, indicating that the community detection algorithms tightly cluster intersections within the same community.
 
-### Resilience Analysis and Results
+## Resilience Analysis and Results
 
 We simulate targeted scenarios such as road closures, infrastructure failures, or disaster damage at intersections with the most traffic flow in the road network. The goal is to observe how the town's connectivity and structure degrade under such disruptions, specifically examining whether the town fragments into isolated regions, are there any unreachable intersections, and how overall connectivity metrics change after each removal. This provides insight into the town's infrastructural vulnerability and helps identify which intersections are most critical to maintain for ensuring a functional road network.
 
@@ -342,11 +349,11 @@ removal_results %>%
   row_spec(c(9,10), background = "#F3E1FF")
 ```
 
-#### Choosing optimal number of removed High-Betweenness Articulation Points
+### Choosing optimal number of removed High-Betweenness Articulation Points
 
 Selecting appropriate number of intersection removals is also important, because we want a reasonable numbers to simulate the real-world scenarios of road closures and significant enough to observe the disruption on the traffic system. Removing one intersection might not stress the traffic system but removing ten are not as common in the real world that rarely this many intersections would be shut down simultaneously.
 
-#### Mectrics Analysis
+### Mectrics Analysis
 
 The removal has a measurable but relatively moderate impact on the traffic system within each hub. Connectivity between neighborhoods/districts is disrupted, so in hubs 1, 2, and 4, towns are divided into 2 or 3 components, with no connecting roads, leaving residents unable to access all parts of their towns due to the loss of major roadways. In addition, the number of disconnected intersection pairs rises significantly, meaning that residents can no longer commute freely from place to place, as well as the percentage of disconnected intersections within hub1, 2, and 4. The longest shortest path (diameter) increases slightly, and on average, people need to go through more intersections. Another notable feature is the closeness centrality of hubs 1, 2, and 4: they are `NA`, indicating isolated intersections in the network with zero connecting paths, as closeness centrality cannot be calculated when the network is fragmented. Transitivity remains stable as those disconnected intersections are not taken into account.
 
@@ -356,49 +363,55 @@ Overall, all 5 hubs demonstrate good resilience when major intersections are shu
 
 # Conclusion
 
-Summary of insights gained. Possible future directions for further analysis.
+Our analysis has shown that Pennsylvania's road networks are characterized as having low transitivity, low density, and an average degree of roughly 3 across all hubs. These metrics reveal the underlying structure of Pennsylvania's road structure, where low transitivity indicates the grid-like structure of road networks, and low density and average degree of 3 highlights the physical limitations of road networks. 
 
-# Appendix
+Through our community detection results, we found that we have high modularity across all five subgraphs, which confirms that we can detect functional "towns" within our subnetworks. Additionally, our resilience analysis demonstrated that while all Hubs 3 and 5 demonstrate good resilience to major intersection shut-downs, Hubs 1, 2, and 4 are much more vulnerable to the shut-down of major intersections, where the removal of these nodes/intersections results in the fragmentation of the Hub, leading to an inability to efficiently traverse the network. 
+
+Since roadNet-PA contains no edge or node attributes beyond a basic name attribute for the nodes, future analysis would benefit from merging external datasets to add edge weights such as road length, speed limits, traffic reports (accidents/closures), road type (highway vs local street), or the intersection type (stoplight/stop sign).  
 
 # References
 
-List of references and datasets used.
-
 “SNAP: Network Datasets: Pennsylvania Road Network.” Stanford.edu, 2026, snap.stanford.edu/data/roadNet-PA.html. Accessed 6 Mar. 2026.
 
-### Tools and Packages
+
+# Appendix 1
+
+### Code Used In Report
+
+```{r ref.label=knitr::all_labels(), echo=TRUE, eval=FALSE}
+```
+
+
+# Appendix 2
+
+## 1. Tools and Packages
 
 We used R and RStudio as our programming language and platform to perform our analysis.
 
-The packages we used were *igraph* for network manipulation, community detection, and metric calculations. *Matrix* to create the adjacency matrices. *dplyr* for data manipulation and cleaning and *kableExtra* for creating better tables.
+The packages we used were:
 
-### Code
+- *igraph*: Used for network manipulation, community detection, and metric calculations. 
 
-```{r data-processing, eval = F}
-# Data Processing 
+- *Matrix*: Used to create the adjacency matrices. 
 
-# Margin helpers
-def_marg <- c(5.1, 4.1, 4.1, 2.1)
-no_marg  <- c(0, 0, 0, 0)
+- *dplyr*: Used for data manipulation and cleaning 
 
-pa_road_edges <- read.table(
-  "roadNet-PA.txt",
-  comment.char = "#",
-  col.names = c("from", "to")
-)
+- *kableExtra*: Used for creating better tables.
 
-pa_road_network <- graph_from_data_frame(pa_road_edges, directed=FALSE)
+- *lattice*: Used to render Adjacency Matrices
 
-# Removes duplicate edges / self-loops
-simple_pa_road <- simplify(pa_road_network)
-```
+- *gridExtra*: Used to plot Adjacency Matrices on a single page
 
-```{r}
+## 2. Additional Code
+
+### 2.1 All Community Detection Visualizations
+
+```{r, cache = TRUE, fig.height = 10, fig.width = 10}
 all_colors <- colors()
 vibrant_colors <- all_colors[!grepl("gray|grey", all_colors)]
 unique_palette <- sample(vibrant_colors)
 
-par(mfrow = c(2,5), mar = c(0, 1, 1, 0))
+par(mfrow = c(5,2), mar = c(0, 1, 1, 0))
 # Loop through each subgraph in your list
 for(i in 1:length(subgraph_list_hub)) {
   g <- subgraph_list_hub[[i]]
@@ -412,15 +425,12 @@ for(i in 1:length(subgraph_list_hub)) {
   
   plot(cw, g,
        layout = layout_nicely,
-       vertex.size = 4,
+       vertex.size = 1,
        vertex.label = NA,
        vertex.color = v_colors_cw[membership(cw)],
-       vertex.frame.color = "gray40",
-       edge.color = "black",
+       edge.color = "grey95",
        edge.width = 0.5,
        edge.curved = 0.3,
-       col = "grey95",      # hull color
-       border = "red",      # hull border
        main = paste("Hub", i, ": Walktrap"))
 
   # Fast & Greedy
@@ -429,15 +439,66 @@ for(i in 1:length(subgraph_list_hub)) {
   
   plot(cfg, g,
        layout = layout_nicely,
-       vertex.size = 4,
+       vertex.size = 1,
        vertex.label = NA,
        vertex.color = v_colors_cfg[membership(cfg)],
-       vertex.frame.color = "gray40",
-       edge.color = "black",
+       edge.color = "grey95",
        edge.width = 0.5,
        edge.curved = 0.3,
-       col = "grey95",
-       border = "blue",     # changed border color to distinguish
        main = paste("Hub", i, ": F&G"))
 }
 ```
+
+### 2.2 All Adjacency Matrices (Original and Reordered)
+
+```{r, fig.height = 16, fig.width = 10}
+all_plots <- list()
+
+for(i in 1:length(subgraph_list_hub)) {
+  g <- subgraph_list_hub[[i]]
+  
+  cw  <- cluster_walktrap(g)
+  cfg <- cluster_fast_greedy(g)
+  
+  # Original (unordered) adjacency matrix
+  A <- as_adjacency_matrix(g, sparse = TRUE)
+  
+  # 1. Original Plot
+  # We pass scales, xlab, and ylab directly to avoid the par.settings error
+  p1 <- image(A, 
+              main = list(label = paste("Original: Hub", i), cex = 0.8),
+              col.regions = "red",
+              scales = list(draw = FALSE), 
+              xlab = NULL, ylab = NULL, sub = FALSE)
+
+  # 2. Reorder by Walktrap
+  ord1 <- order(cw$membership)
+  A_reordered1 <- A[ord1, ord1]
+  p2 <- image(A_reordered1, 
+              main = list(label = paste("Walktrap: Hub", i), cex = 0.8),
+              col.regions = "red",
+              scales = list(draw = FALSE), 
+              xlab = NULL, ylab = NULL, sub = FALSE)
+  
+  # 3. Reorder by FG
+  ord2 <- order(cfg$membership)
+  A_reordered2 <- A[ord2, ord2]
+  p3 <- image(A_reordered2, 
+              main = list(label = paste("FG: Hub", i), cex = 0.8),
+              col.regions = "red",
+              scales = list(draw = FALSE), 
+              xlab = NULL, ylab = NULL, sub = FALSE)
+  
+  all_plots <- c(all_plots, list(p1, p2, p3))
+}
+
+# Arrange the final grid
+do.call(grid.arrange, c(all_plots, ncol = 3))
+
+
+```
+
+
+
+
+
